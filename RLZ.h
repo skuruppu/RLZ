@@ -19,8 +19,9 @@ class RLZ
 
         /** Constructor for the RLZ class.
          * @param filenames Filenames for sequences to be compressed
+         * @param numfiles Number of files in the dataset
          */
-        RLZ(char **filenames);
+        RLZ(char **filenames, uint64_t numfiles);
 
         ~RLZ();
 
@@ -40,6 +41,7 @@ class RLZ
 
         // File names of sequences to be compressed
         char **filenames;
+        uint64_t numfiles;
 
         /** Store a sequence containing nucleotides from alphabet
          * NUCLALPHA using BITSPERBASE bits each.
@@ -49,5 +51,15 @@ class RLZ
          * @param length Number of symbols to store
          */
         void store_sequence(char *sequence, char *filename,
+                            Array *dest, uint64_t length);
+
+        /** Store a sequence containing nucleotides from alphabet
+         * NUCLALPHA using BITSPERBASE bits each.
+         * @param infile Input stream containing sequence
+         * @param filename Name of input file
+         * @param dest Place to store the sequence to
+         * @param length Number of symbols to store
+         */
+        void store_sequence(ifstream& infile, char *filename,
                             Array *dest, uint64_t length);
 };
