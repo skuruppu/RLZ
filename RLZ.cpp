@@ -156,10 +156,99 @@ void RLZ::compress()
 {
     uint64_t i;
     char outfilename[1024];
+    ifstream infile;
     ofstream outfile;
 
     for (i=1; i<numfiles; i++)
     {
-        
+        // Open sequence file to be compressed
+        infile.open(filenames[i], ifstream::in);
+        if (!infile.good())
+        {
+            cerr << "Couldn't open file " << filenames[i] << ".\n";
+            exit(1);
+        }
+
+        // Open output file to write compressed sequence to
+        sprintf(outfilename, "%s.fac", filenames[i]);
+        outfile.open(outfilename, ofstream::out);
+        if (!outfile.good())
+        {
+            cerr << "Couldn't open file " << outfilename << ".\n";
+            exit(1);
+        }
+
+        relative_LZ_factorise(infile, filenames[i], outfile);
+
+        infile.close();
+        outfile.close();
     }
+}
+
+void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
+                                ofstream& outfile)
+{
+    int c;
+    uint64_t i, len;
+    size_t pl, pr, cl, cr;
+    bool runofns;
+
+    i = 0;
+    st->Root(&pl, &pr);
+    len = 0;
+    runofns = false;
+    while (1)
+    {
+        c = infile.get();
+        if (infile.eof())
+        {
+            break;
+        }
+        if (nucl_to_int[c] == 0)
+        {
+            cerr << "Invalid symbol " << c << " at position " << i;
+            cerr << " of sequence in " << filename << ".\n";
+            exit(1);
+        }
+
+        if (c == 'n')
+        {
+            if (!runofns && len > 0)
+            {
+                cout << st->Locate(pl,pl) << ' ' << len << endl;
+                st->Root(&pl, &pr);
+                len = 0; 
+            }
+            runofns = true;
+            len++;
+        }
+        else
+        {
+            if (runofns)
+            {
+                cout << refseqlen << ' ' << len << endl;
+                runofns = false;
+                len = 0;
+            }
+
+            st->Child(pl, pr, (unsigned char)c, &cl, &cr);
+
+            if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
+            {
+                cout << st->Locate(pl,pl) << ' ' << len << endl;
+                st->Root(&pl, &pr);
+                len = 0;
+            }
+            else
+            {
+                len++;
+                pl = cl;
+                pr = cr;
+            }
+        }
+
+        i++;
+    }
+
+    cout << refseqlen << ' ' << len << endl;
 }

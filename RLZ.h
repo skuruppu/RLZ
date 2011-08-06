@@ -62,4 +62,13 @@ class RLZ
          */
         void store_sequence(ifstream& infile, char *filename,
                             Array *dest, uint64_t length);
+
+        /** Conducts the relative Lempel-Ziv compression of the sequence
+         * inside the infile and writes the output to outfile.
+         * @param infile Input file stream
+         * @param filename Name of the input file
+         * @param outfile Output file stream
+         */
+        void relative_LZ_factorise(ifstream& infile, char *filename,
+                                   ofstream& outfile);
 };
