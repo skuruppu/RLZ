@@ -4,10 +4,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	ifstream infile;
-	infile.open(argv[1], ifstream::in);
-
-	RLZ rlz(infile);
+	RLZ rlz(argv+1);
 
     return 0;
 }

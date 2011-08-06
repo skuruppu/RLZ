@@ -14,8 +14,13 @@ class RLZ
 {
     public:
         static const uint64_t BITSPERBASE = 3;
+        static const char *NUCLALPHA;
+        static const uint64_t NUCLALPHASIZE = 5;
 
-        RLZ(std::ifstream& infile);
+        /** Constructor for the RLZ class.
+         * @param filenames Filenames for sequences to be compressed
+         */
+        RLZ(char **filenames);
 
         ~RLZ();
 
@@ -33,5 +38,16 @@ class RLZ
         // Suffix tree of the reference sequence
         cds_static::SuffixTree *st;
 
-        void store_sequence(ifstream& infile, Array *sequence, uint64_t length);
+        // File names of sequences to be compressed
+        char **filenames;
+
+        /** Store a sequence containing nucleotides from alphabet
+         * NUCLALPHA using BITSPERBASE bits each.
+         * @param infile Input file
+         * @param filename Name of input file
+         * @param sequence Place to store the sequence to
+         * @param length Number of symbols to store
+         */
+        void store_sequence(ifstream& infile, char *filename,
+                            Array *sequence, uint64_t length);
 };
