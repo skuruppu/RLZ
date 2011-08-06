@@ -29,19 +29,14 @@ RLZ::RLZ(char **filenames)
 {
     this->filenames = filenames;
 
-    // Open reference sequence file
-    ifstream infile;
-	infile.open(filenames[0], ifstream::in);
-    if (infile.bad())
+    char *sequence = NULL;
+    if (loadText(filenames[0], &sequence, &refseqlen))
     {
-        cerr << "Could not open file " << filenames[0] << ".\n";
+        cerr << "Couldn't read reference sequence.\n";
         exit(1);
     }
-
-    // Get the length of the file
-    infile.seekg(0, ios::end);
-    refseqlen = infile.tellg();
-    infile.seekg(0, ios::beg);
+    // loadText places an extra byte at the end
+    refseqlen--;
 
     // Get the log of the reference sequence length
     uint64_t i = floor(log2(refseqlen));
@@ -51,8 +46,19 @@ RLZ::RLZ(char **filenames)
 
     // Read the reference sequence
     refseq = new Array(refseqlen, ((unsigned)1<<BITSPERBASE)-1);
-    store_sequence(infile, filenames[0], refseq, refseqlen);
+    store_sequence(sequence, filenames[0], refseq, refseqlen);
 
+    // Constuct suffix tree for reference sequence
+    /*
+    sprintf(stfilename, "%s.st", filenames[0]);
+    infile.open(stfilename, ifstream::in);
+    if (infile.bad())
+    {
+        SuffixTreeY sty();
+    }
+    */
+
+    delete [] sequence;
 }
 
 RLZ::~RLZ()
@@ -61,25 +67,23 @@ RLZ::~RLZ()
     //delete st;
 }
 
-void RLZ::store_sequence(ifstream& infile, char *filename, 
-                         Array *sequence, uint64_t length)
+void RLZ::store_sequence(char *sequence, char *filename,
+                         Array *dest, uint64_t length)
 {
     uint64_t i;
-    int c;
     unsigned int v;
 
     for (i=0; i<length; i++)
     {
-        c = infile.get();
-        v = nucl_to_int[c];
+        v = nucl_to_int[(unsigned int)sequence[i]];
         // Valid nucleotide
         if (v > 0)
         {
-            refseq->setField(i, v);
+            dest->setField(i, v);
         }
         else
         {
-            cerr << "Invalid symbol " << c << " at position " << i;
+            cerr << "Invalid symbol " << sequence[i] << " at position " << i;
             cerr << " of sequence in " << filename << ".\n";
             exit(1);
         }

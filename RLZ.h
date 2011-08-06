@@ -43,11 +43,11 @@ class RLZ
 
         /** Store a sequence containing nucleotides from alphabet
          * NUCLALPHA using BITSPERBASE bits each.
-         * @param infile Input file
+         * @param sequence Character array of the sequence
          * @param filename Name of input file
-         * @param sequence Place to store the sequence to
+         * @param dest Place to store the sequence to
          * @param length Number of symbols to store
          */
-        void store_sequence(ifstream& infile, char *filename,
-                            Array *sequence, uint64_t length);
+        void store_sequence(char *sequence, char *filename,
+                            Array *dest, uint64_t length);
 };
