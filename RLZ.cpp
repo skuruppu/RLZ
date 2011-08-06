@@ -48,15 +48,23 @@ RLZ::RLZ(char **filenames)
     refseq = new Array(refseqlen, ((unsigned)1<<BITSPERBASE)-1);
     store_sequence(sequence, filenames[0], refseq, refseqlen);
 
-    // Constuct suffix tree for reference sequence
-    /*
+    char stfilename[1024];
     sprintf(stfilename, "%s.st", filenames[0]);
+    ifstream infile;
     infile.open(stfilename, ifstream::in);
-    if (infile.bad())
+    // Construct the suffix tree if it doesn't exist
+    if (!infile.good())
     {
-        SuffixTreeY sty();
+        infile.close();
+        SuffixTreeY sty(sequence, refseqlen+1, DAC, CN_NPR, 32);
+        ofstream outfile(stfilename);
+        sty.save(outfile);
+        outfile.close();
+        infile.open(stfilename, ifstream::in);
     }
-    */
+    // Load from saved suffix tree file
+    st = SuffixTree::load(infile);
+    infile.close();
 
     delete [] sequence;
 }
@@ -64,7 +72,7 @@ RLZ::RLZ(char **filenames)
 RLZ::~RLZ()
 {
     delete refseq;
-    //delete st;
+    delete st;
 }
 
 void RLZ::store_sequence(char *sequence, char *filename,
