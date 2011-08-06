@@ -232,12 +232,23 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
             }
 
             st->Child(pl, pr, (unsigned char)c, &cl, &cr);
+            cout << (char)c << ' ' << cl << ' ' << cr << endl;
 
             if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
             {
+                st->FChild(pl, pr, &cl, &cr);
+                while (cl != (uint64_t)(-1))
+                {
+                    cout << st->Letter(cl, cr, len+2) << ' ' << cl << ' ' << cr << endl;
+                    pl = cl;
+                    pr = cr;
+                    st->NSibling(pl, pr, &cl, &cr);
+                }
+
                 cout << st->Locate(pl,pl) << ' ' << len << endl;
                 st->Root(&pl, &pr);
                 len = 0;
+                break;
             }
             else
             {
@@ -249,6 +260,4 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
 
         i++;
     }
-
-    cout << refseqlen << ' ' << len << endl;
 }
