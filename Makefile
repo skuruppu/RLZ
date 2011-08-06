@@ -10,7 +10,7 @@ INCLUDES = -I/home/data/kuruppu/src/lib/cds/include
 
 LFLAGS = -L/home/data/kuruppu/src/lib/cds/lib
 
-LIBS = -lcds
+LIBS = -lcds -ldivsufsort64
 
 SRCS = RLZ.cpp Bits.cpp main.cpp
 

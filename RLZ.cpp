@@ -1,3 +1,4 @@
+#include <divsufsort64.h>
 #include "RLZ.h"
 
 using namespace std;
@@ -25,7 +26,88 @@ void initialise_nucl_converters()
     }
 }
 
+
 RLZ::RLZ(char **filenames, uint64_t numfiles)
+{
+    this->filenames = filenames;
+    this->numfiles = numfiles;
+
+    initialise_nucl_converters();
+
+    uint64_t i;
+    char safilename[1024];
+    sprintf(safilename, "%s.sa", filenames[0]);
+    ifstream infile;
+    infile.open(safilename, ifstream::in);
+    // Need to construct suffix tree
+    if (!infile.good())
+    {
+        infile.close();
+        // Read reference sequence into memory since its needed by
+        // suffix tree constructor
+        char *sequence = NULL;
+        if (loadText(filenames[0], &sequence, &refseqlen))
+        {
+            cerr << "Couldn't read reference sequence.\n";
+            exit(1);
+        }
+        // loadText places an extra byte at the end
+        refseqlen--;
+
+        // Read the reference sequence
+        refseq = new Array(refseqlen, ((unsigned)1<<BITSPERBASE)-1);
+        store_sequence(sequence, filenames[0], refseq, refseqlen);
+
+        // Construct suffix array
+        uint64_t *sufarray = new uint64_t[refseqlen+1];
+        if (divsufsort64((sauchar_t*)sequence, (saidx64_t*)sufarray,
+            refseqlen+1) < 0)
+        {
+            cerr << "Error in constructing suffix array.\n";
+            exit(1);
+        }
+
+        sa = new Array(refseqlen+1, logrefseqlen);
+        for (i=0; i<=refseqlen; i++)
+        {
+            sa->setField(i, sufarray[i]);
+        }
+
+        // Write out suffix array to disk for later use
+        ofstream outfile(safilename);
+        sa->save(outfile);
+        outfile.close();
+
+        delete [] sequence;
+        delete [] sufarray;
+    }
+    else
+    {
+        // Load suffix array from saved suffix array file
+        sa = new Array(infile);
+        infile.close();
+        
+        // Open reference sequence file
+        infile.open(filenames[0], ifstream::in);
+        if (!infile.good())
+        {
+            cerr << "Couldn't open file " << filenames[0] << ".\n";
+            exit(1);
+        }
+
+        // Get the reference sequence length
+        infile.seekg(0, ios::end);
+        refseqlen = infile.tellg();
+        infile.seekg(0, ios::beg);
+
+        // Read the reference sequence
+        refseq = new Array(refseqlen, ((unsigned)1<<BITSPERBASE)-1);
+        store_sequence(infile, filenames[0], refseq, refseqlen);
+        infile.close();
+    }
+}
+
+RLZ::RLZ(char **filenames, uint64_t numfiles, bool state)
 {
     this->filenames = filenames;
     this->numfiles = numfiles;
@@ -56,7 +138,7 @@ RLZ::RLZ(char **filenames, uint64_t numfiles)
         store_sequence(sequence, filenames[0], refseq, refseqlen);
 
         // Construct suffix tree
-        SuffixTreeY *sty = new SuffixTreeY(sequence, refseqlen+1, DAC,
+        SuffixTreeY *sty = new SuffixTreeY(sequence, refseqlen+1, PHI,
                                            CN_NPR, 32);
 
         // Write out suffix tree to disk for later use
@@ -97,7 +179,7 @@ RLZ::RLZ(char **filenames, uint64_t numfiles)
 RLZ::~RLZ()
 {
     delete refseq;
-    delete st;
+    delete sa;
 }
 
 void RLZ::store_sequence(char *sequence, char *filename,
@@ -185,8 +267,14 @@ void RLZ::compress()
     }
 }
 
+
 void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
                                 ofstream& outfile)
+{
+}
+
+void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
+                                ofstream& outfile, bool state)
 {
     int c;
     uint64_t i, len;
@@ -233,19 +321,21 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
 
             st->Child(pl, pr, (unsigned char)c, &cl, &cr);
             cout << (char)c << ' ' << cl << ' ' << cr << endl;
+            
+            if (len == 12)
+            {
+                st->FChild(pl, pr, &cl, &cr);
+                cout << cl << ' ' << cr << endl;
+                break;
+            }
 
             if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
             {
-                st->FChild(pl, pr, &cl, &cr);
-                while (cl != (uint64_t)(-1))
+                for (i=pl; i<=pr; i++)
                 {
-                    cout << st->Letter(cl, cr, len+2) << ' ' << cl << ' ' << cr << endl;
-                    pl = cl;
-                    pr = cr;
-                    st->NSibling(pl, pr, &cl, &cr);
+                    cout << st->Locate(i,i) << endl;
                 }
-
-                cout << st->Locate(pl,pl) << ' ' << len << endl;
+                //cout << st->Locate(pl,pl) << ' ' << len << endl;
                 st->Root(&pl, &pr);
                 len = 0;
                 break;

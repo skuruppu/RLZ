@@ -23,6 +23,14 @@ class RLZ
          */
         RLZ(char **filenames, uint64_t numfiles);
 
+        /** Temporary constructor that implements the suffix tree
+         * instead of a suffix array.
+         * @param filenames Filenames for sequences to be compressed
+         * @param numfiles Number of files in the dataset
+         * @param state Random parameter to overload the constructor
+         */
+        RLZ(char **filenames, uint64_t numfiles, bool state);
+
         ~RLZ();
 
         void compress();
@@ -38,6 +46,9 @@ class RLZ
 
         // Suffix tree of the reference sequence
         cds_static::SuffixTree *st;
+
+        // Suffix array of the reference sequence
+        cds_utils::Array *sa;
 
         // File names of sequences to be compressed
         char **filenames;
@@ -71,4 +82,14 @@ class RLZ
          */
         void relative_LZ_factorise(ifstream& infile, char *filename,
                                    ofstream& outfile);
+
+        /** Conducts the relative Lempel-Ziv compression of the sequence
+         * inside the infile and writes the output to outfile.
+         * @param infile Input file stream
+         * @param filename Name of the input file
+         * @param outfile Output file stream
+         * @param random parameter to overload the method
+         */
+        void relative_LZ_factorise(ifstream& infile, char *filename,
+                                   ofstream& outfile, bool state);
 };
