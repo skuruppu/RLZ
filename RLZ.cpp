@@ -287,6 +287,12 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
     uint64_t pl, pr, cl, cr;
     bool runofns;
 
+    BitWriter bwriter(outfile);
+    GolombCoder gcoder(bwriter, 64);
+
+    // Output the Golomb coding parameter
+    bwriter.int_to_binary(64, 8);
+
     i = 0;
     runofns = false;
     pl = 0; pr = refseqlen; len = 0;
@@ -310,7 +316,7 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
             // array boundaries
             if (!runofns && len > 0)
             {
-                cout << sa->getField(pl) << ' ' << len << endl;
+                output_factor(sa->getField(pl), len, bwriter, gcoder);
                 pl = 0; pr = refseqlen; len = 0; 
             }
             runofns = true;
@@ -321,7 +327,7 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
             // A run of Ns just ended so print the factor
             if (runofns)
             {
-                cout << refseqlen << ' ' << len << endl;
+                output_factor(refseqlen, len, bwriter, gcoder);
                 runofns = false;
                 len = 0;
             }
@@ -332,7 +338,7 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
             // Couldn't extend current match so print factor
             if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
             {
-                cout << sa->getField(pl) << ' ' << len << endl;
+                output_factor(sa->getField(pl), len, bwriter, gcoder);
                 infile.unget();
                 pl = 0; pr = refseqlen; len = 0;
             }
@@ -350,10 +356,12 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
     if (len > 0)
     {
         if (runofns)
-            cout << refseqlen << ' ' << len << endl;
+            output_factor(refseqlen, len, bwriter, gcoder);
         else
-            cout << sa->getField(pl) << ' ' << len << endl;
+            output_factor(sa->getField(pl), len, bwriter, gcoder);
     }
+
+    bwriter.flush();
 }
 
 void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
@@ -527,4 +535,11 @@ void RLZ::sa_binary_search(uint64_t pl, uint64_t pr, int c,
     }
 
     return;
+}
+
+void RLZ::output_factor(uint64_t pos, uint64_t len, BitWriter& bwriter,
+                        GolombCoder& gcoder)
+{
+    bwriter.int_to_binary(pos, logrefseqlen);
+    gcoder.golomb_encode(len);
 }

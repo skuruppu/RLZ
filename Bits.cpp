@@ -230,7 +230,8 @@ void GolombCoder::golomb_encode(uint64_t n, unsigned int b, unsigned int log2b)
 
     // Get the quotient and the remainder from dividing n by b
     quotient = n >> log2b;
-    remainder = (n << (BITSPERWORD-log2b)) >> (BITSPERWORD-log2b); 
+	remainder = (n << ((BITSPERWORD<<1)-log2b)) >>
+				((BITSPERWORD<<1)-log2b);
     
     // Encode the quotient
     for (i = 0; i<quotient; i++)

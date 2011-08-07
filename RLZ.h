@@ -1,6 +1,7 @@
 #include <iostream>
 #include <SuffixTree.h>
 #include <Array.h>
+#include "Bits.h"
 
 #ifdef _cplusplus
 #define _STDC_CONSTANT_MACROS
@@ -105,4 +106,13 @@ class RLZ
          */
         void sa_binary_search(uint64_t pl, uint64_t pr, int c, 
                               uint64_t offset, uint64_t *cl, uint64_t *cr);
+
+        /** Output an RLZ factor.
+         * @param pos Position component of factor
+         * @param len Length component of factor
+         * @param bwriter BitWriter object to write to
+         * @param gcoder GolombCoder object to write to
+         */
+        void output_factor(uint64_t pos, uint64_t len, BitWriter& bwriter,
+                           GolombCoder& gcoder);
 };
