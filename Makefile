@@ -4,11 +4,11 @@
 
 CC = g++
 
-CFLAGS = -Wall -O9
+CFLAGS = -Wall -O9 -g
 
-INCLUDES = -I/home/data/kuruppu/src/lib/cds/include
+INCLUDES = -I../lib/cds/include
 
-LFLAGS = -L/home/data/kuruppu/src/lib/cds/lib
+LFLAGS = -L../lib/cds/lib
 
 LIBS = -lcds -ldivsufsort64
 

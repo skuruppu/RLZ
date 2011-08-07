@@ -55,7 +55,7 @@ RLZ::RLZ(char **filenames, uint64_t numfiles)
         refseqlen--;
 
         // Read the reference sequence
-        refseq = new Array(refseqlen, ((unsigned)1<<BITSPERBASE)-1);
+        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
         store_sequence(sequence, filenames[0], refseq, refseqlen);
 
         // Construct suffix array
@@ -101,7 +101,7 @@ RLZ::RLZ(char **filenames, uint64_t numfiles)
         infile.seekg(0, ios::beg);
 
         // Read the reference sequence
-        refseq = new Array(refseqlen, ((unsigned)1<<BITSPERBASE)-1);
+        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
         store_sequence(infile, filenames[0], refseq, refseqlen);
         infile.close();
     }
@@ -203,6 +203,7 @@ void RLZ::store_sequence(char *sequence, char *filename,
             exit(1);
         }
     }
+    dest->setField(i, 0);
 
     return;
 }
@@ -230,6 +231,7 @@ void RLZ::store_sequence(ifstream &infile, char *filename,
             exit(1);
         }
     }
+    dest->setField(i, 0);
 
     return;
 }
@@ -271,6 +273,78 @@ void RLZ::compress()
 void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
                                 ofstream& outfile)
 {
+    int c;
+    uint64_t i, len;
+    uint64_t pl, pr, cl, cr;
+    bool runofns;
+
+    i = 0;
+    runofns = false;
+    pl = 0; pr = refseqlen; len = 0;
+    while (1)
+    {
+        // EOF reached
+        if ((c = infile.get()) == EOF) break;
+
+        // Invalid symbol in file
+        if (nucl_to_int[c] == 0)
+        {
+            cerr << "Invalid symbol " << c << " at position " << i;
+            cerr << " of sequence in " << filename << ".\n";
+            exit(1);
+        }
+
+        // Part of a run of Ns
+        if (c == 'n')
+        {
+            // A new run of Ns so print earlier factor and reset suffix
+            // array boundaries
+            if (!runofns && len > 0)
+            {
+                cout << sa->getField(pl) << ' ' << len << endl;
+                pl = 0; pr = refseqlen; len = 0; 
+            }
+            runofns = true;
+            len++;
+        }
+        else
+        {
+            // A run of Ns just ended so print the factor
+            if (runofns)
+            {
+                cout << refseqlen << ' ' << len << endl;
+                runofns = false;
+                len = 0;
+            }
+
+            // Try to extend the current match
+            sa_binary_search(pl, pr, nucl_to_int[c], len, &cl, &cr);
+            
+            // Couldn't extend current match so print factor
+            if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
+            {
+                cout << sa->getField(pl) << ' ' << len << endl;
+                infile.unget();
+                pl = 0; pr = refseqlen; len = 0;
+            }
+            // Set the suffix array boundaries to narrow the search for
+            // the next symbol
+            else
+            {
+                pl = cl; pr = cr; len++;
+            }
+        }
+        i++;
+    }
+    
+    // Print last factor
+    if (len > 0)
+    {
+        if (runofns)
+            cout << refseqlen << ' ' << len << endl;
+        else
+            cout << sa->getField(pl) << ' ' << len << endl;
+    }
 }
 
 void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
@@ -350,4 +424,98 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
 
         i++;
     }
+}
+
+void RLZ::sa_binary_search(uint64_t pl, uint64_t pr, int c,
+                           uint64_t offset, uint64_t *cl, uint64_t *cr)
+{
+    uint64_t low, high, mid; 
+    int midval, midvalleft, midvalright;
+
+    // Binary search left
+    low = pl; high = pr;
+    while (low <= high)
+    {
+        mid = (low + high) >> 1;
+
+        midval = refseq->getField(sa->getField(mid)+offset);
+        // Move left boundary to the middle
+        if (midval < c)
+            low = mid + 1;
+        // Move right boundary to the middle
+        else if (midval > c)
+            high = mid - 1;
+        else
+        {
+            // Mid is at the left boundary
+            if(mid == pl)
+            {
+                *cl = mid;
+                break;
+            }
+            midvalleft = refseq->getField(sa->getField(mid-1)+offset);
+            // Discard mid and values to the right of mid
+            if(midvalleft == midval)
+                high = mid - 1;
+            // Left-most occurrence found
+            else
+            {
+                *cl = mid;
+                break;
+            }
+        }
+    }
+
+    // Key not found so return not found symbols
+    if (low > high)
+    {
+        *cl = (uint64_t)(-1);
+        *cr = (uint64_t)(-1);
+        return;
+    }
+
+    // Binary search right
+    low = *cl; high = pr;
+    while (low <= high)
+    {
+        mid = (low + high) >> 1;
+
+
+        midval = refseq->getField(sa->getField(mid)+offset);
+        // Move left bounary to the middle
+        if (midval < c)
+            low = mid + 1;
+        // Move right boundary to the middle
+        else if (midval > c)
+            high = mid - 1;
+        else
+        { 
+            // Rightmost occurrence of key found
+            if(mid == pr)
+            {
+                *cr = mid;
+                break;
+            }
+            midvalright = refseq->getField(sa->getField(mid+1)+offset);
+            // Discard mid and the ones to the left of mid
+            if(midvalright == midval)
+                low = mid + 1; 
+            // Rightmost occurrence of key found
+            else 
+            {
+                *cr = mid;
+                break;
+            }
+        }
+    }
+
+    // Key not found so return not found symbols
+    if (low > high)
+    {
+        *cl = (uint64_t)(-1);
+        *cr = (uint64_t)(-1);
+        return;
+    }
+
+    return;
 }

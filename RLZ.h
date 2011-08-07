@@ -92,4 +92,17 @@ class RLZ
          */
         void relative_LZ_factorise(ifstream& infile, char *filename,
                                    ofstream& outfile, bool state);
+
+
+        /** Conducts a binary search in the suffix array for a symbol at
+         * a particular offset of the suffixes.
+         * @param pl Left boundary to begin with
+         * @param pr Right boundary to begin with
+         * @param c Symbol to find at offset
+         * @param offset Offset from the beginning of the suffix
+         * @param cl Output left boundary
+         * @param cr Output right boundary
+         */
+        void sa_binary_search(uint64_t pl, uint64_t pr, int c, 
+                              uint64_t offset, uint64_t *cl, uint64_t *cr);
 };
