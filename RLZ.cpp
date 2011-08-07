@@ -67,7 +67,7 @@ RLZ::RLZ(char **filenames, uint64_t numfiles)
             exit(1);
         }
 
-        sa = new Array(refseqlen+1, logrefseqlen);
+        sa = new Array(refseqlen+1, refseqlen);
         for (i=0; i<=refseqlen; i++)
         {
             sa->setField(i, sufarray[i]);
@@ -104,7 +104,12 @@ RLZ::RLZ(char **filenames, uint64_t numfiles)
         refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
         store_sequence(infile, filenames[0], refseq, refseqlen);
         infile.close();
+
     }
+
+    // Calculate the log of the reference sequence length
+    i = floor(log2(refseqlen));
+    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 }
 
 RLZ::RLZ(char **filenames, uint64_t numfiles, bool state)
@@ -174,6 +179,10 @@ RLZ::RLZ(char **filenames, uint64_t numfiles, bool state)
         store_sequence(infile, filenames[0], refseq, refseqlen);
         infile.close();
     }
+
+    // Calculate the log of the reference sequence length
+    uint64_t i = floor(log2(refseqlen));
+    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 }
 
 RLZ::~RLZ()
