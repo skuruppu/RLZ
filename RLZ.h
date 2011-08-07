@@ -11,6 +11,71 @@
 #include <cstdint>
 #endif
 
+class FactorWriter
+{
+    public:
+
+        /** Destructor for the class. */
+        virtual ~FactorWriter() {}
+
+        /** Output an RLZ factor.
+         * @param pos Position component of factor
+         * @param len Length component of factor
+         */
+        virtual void output_factor(uint64_t pos, uint64_t len) = 0;
+};
+
+class FactorWriterText : public FactorWriter
+{
+    public:
+
+        /** Constructor for the class.
+         * @param outfile Output file stream
+         */
+        FactorWriterText(ofstream& outfile);
+        
+        /** Output an RLZ factor.
+         * @param pos Position component of factor
+         * @param len Length component of factor
+         */
+        void output_factor(uint64_t pos, uint64_t len);
+
+    private:
+        
+        // Output stream to write to
+        ofstream& outfile;
+};
+
+class FactorWriterBinary : public FactorWriter
+{
+    public:
+
+        /** Constructor for the class.
+         * @param outfile Output file stream
+         * @param maxposbits Number of bits for encoding positions
+         */
+        FactorWriterBinary(ofstream& outfile, uint64_t maxposbits);
+
+        /** Destructor for the class. */
+        ~FactorWriterBinary();
+
+        /** Output an RLZ factor.
+         * @param pos Position component of factor
+         * @param len Length component of factor
+         */
+        void output_factor(uint64_t pos, uint64_t len);
+
+    private:
+
+        // To write bits and integers
+        BitWriter *bwriter;
+
+        // To Golomb encode numbers
+        GolombCoder *gcoder;
+
+        // Maximum number of bits to use to encode a position
+        uint64_t maxposbits;
+};
 class RLZ
 {
     public:
@@ -21,8 +86,9 @@ class RLZ
         /** Constructor for the RLZ class.
          * @param filenames Filenames for sequences to be compressed
          * @param numfiles Number of files in the dataset
+         * @param encoding Type of encoding to be used
          */
-        RLZ(char **filenames, uint64_t numfiles);
+        RLZ(char **filenames, uint64_t numfiles, char encoding='b');
 
         /** Temporary constructor that implements the suffix tree
          * instead of a suffix array.
@@ -32,10 +98,13 @@ class RLZ
          */
         RLZ(char **filenames, uint64_t numfiles, bool state);
 
+        /** Destructor for the class. */
         ~RLZ();
 
+        /** Method for compression. */
         void compress();
 
+        /** Method for decompression. */
         void decompress();
 
     private:
@@ -54,6 +123,9 @@ class RLZ
         // File names of sequences to be compressed
         char **filenames;
         uint64_t numfiles;
+
+        // Type of encoding
+        char encoding;
 
         /** Store a sequence containing nucleotides from alphabet
          * NUCLALPHA using BITSPERBASE bits each.
@@ -79,17 +151,17 @@ class RLZ
          * inside the infile and writes the output to outfile.
          * @param infile Input file stream
          * @param filename Name of the input file
-         * @param outfile Output file stream
+         * @param facwriter FactorWriter object to output factors
          */
         void relative_LZ_factorise(ifstream& infile, char *filename,
-                                   ofstream& outfile);
+                                   FactorWriter& facwriter);
 
         /** Conducts the relative Lempel-Ziv compression of the sequence
          * inside the infile and writes the output to outfile.
          * @param infile Input file stream
          * @param filename Name of the input file
          * @param outfile Output file stream
-         * @param random parameter to overload the method
+         * @param state random parameter to overload the method
          */
         void relative_LZ_factorise(ifstream& infile, char *filename,
                                    ofstream& outfile, bool state);
@@ -107,12 +179,5 @@ class RLZ
         void sa_binary_search(uint64_t pl, uint64_t pr, int c, 
                               uint64_t offset, uint64_t *cl, uint64_t *cr);
 
-        /** Output an RLZ factor.
-         * @param pos Position component of factor
-         * @param len Length component of factor
-         * @param bwriter BitWriter object to write to
-         * @param gcoder GolombCoder object to write to
-         */
-        void output_factor(uint64_t pos, uint64_t len, BitWriter& bwriter,
-                           GolombCoder& gcoder);
 };
+

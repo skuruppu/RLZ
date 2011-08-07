@@ -27,10 +27,11 @@ void initialise_nucl_converters()
 }
 
 
-RLZ::RLZ(char **filenames, uint64_t numfiles)
+RLZ::RLZ(char **filenames, uint64_t numfiles, char encoding)
 {
     this->filenames = filenames;
     this->numfiles = numfiles;
+    this->encoding = encoding;
 
     initialise_nucl_converters();
 
@@ -271,7 +272,20 @@ void RLZ::compress()
             exit(1);
         }
 
-        relative_LZ_factorise(infile, filenames[i], outfile);
+        // Intialise the factor writer
+        FactorWriter *facwriter = NULL;
+        if (encoding == 'b')
+        {
+            facwriter = new FactorWriterBinary(outfile, logrefseqlen);
+        }
+        else if (encoding == 't')
+        {
+            facwriter = new FactorWriterText(outfile);
+        }
+
+        relative_LZ_factorise(infile, filenames[i], *facwriter);
+
+        delete facwriter;
 
         infile.close();
         outfile.close();
@@ -280,18 +294,12 @@ void RLZ::compress()
 
 
 void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
-                                ofstream& outfile)
+                                FactorWriter &facwriter)
 {
     int c;
     uint64_t i, len;
     uint64_t pl, pr, cl, cr;
     bool runofns;
-
-    BitWriter bwriter(outfile);
-    GolombCoder gcoder(bwriter, 64);
-
-    // Output the Golomb coding parameter
-    bwriter.int_to_binary(64, 8);
 
     i = 0;
     runofns = false;
@@ -316,7 +324,7 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
             // array boundaries
             if (!runofns && len > 0)
             {
-                output_factor(sa->getField(pl), len, bwriter, gcoder);
+                facwriter.output_factor(sa->getField(pl), len);
                 pl = 0; pr = refseqlen; len = 0; 
             }
             runofns = true;
@@ -327,7 +335,7 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
             // A run of Ns just ended so print the factor
             if (runofns)
             {
-                output_factor(refseqlen, len, bwriter, gcoder);
+                facwriter.output_factor(refseqlen, len);
                 runofns = false;
                 len = 0;
             }
@@ -338,7 +346,7 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
             // Couldn't extend current match so print factor
             if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
             {
-                output_factor(sa->getField(pl), len, bwriter, gcoder);
+                facwriter.output_factor(sa->getField(pl), len);
                 infile.unget();
                 pl = 0; pr = refseqlen; len = 0;
             }
@@ -356,12 +364,10 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
     if (len > 0)
     {
         if (runofns)
-            output_factor(refseqlen, len, bwriter, gcoder);
+            facwriter.output_factor(refseqlen, len);
         else
-            output_factor(sa->getField(pl), len, bwriter, gcoder);
+            facwriter.output_factor(sa->getField(pl), len);
     }
-
-    bwriter.flush();
 }
 
 void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
@@ -537,9 +543,36 @@ void RLZ::sa_binary_search(uint64_t pl, uint64_t pr, int c,
     return;
 }
 
-void RLZ::output_factor(uint64_t pos, uint64_t len, BitWriter& bwriter,
-                        GolombCoder& gcoder)
+FactorWriterText::FactorWriterText(ofstream& outfile) :
+    outfile(outfile) {}
+
+FactorWriterBinary::FactorWriterBinary(ofstream& outfile,
+                                       uint64_t maxposbits)
 {
-    bwriter.int_to_binary(pos, logrefseqlen);
-    gcoder.golomb_encode(len);
+    bwriter = new BitWriter(outfile);
+    gcoder = new GolombCoder(*bwriter, 64);
+
+    this->maxposbits = maxposbits;
+
+    // Output the Golomb coding parameter
+    bwriter->int_to_binary(64, 8);
+}
+
+FactorWriterBinary::~FactorWriterBinary()
+{
+    bwriter->flush();
+
+    delete bwriter;
+    delete gcoder;
+}
+
+void FactorWriterText::output_factor(uint64_t pos, uint64_t len)
+{
+    outfile << pos << ' ' << len << endl;
+}
+
+void FactorWriterBinary::output_factor(uint64_t pos, uint64_t len)
+{
+    bwriter->int_to_binary(pos, maxposbits);
+    gcoder->golomb_encode(len);
 }
