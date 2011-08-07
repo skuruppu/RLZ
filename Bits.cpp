@@ -81,23 +81,23 @@ void BitWriter::flush()
     }
 }
 
-void BitWriter::int_to_binary(unsigned int n, unsigned int length)
+void BitWriter::int_to_binary(uint64_t n, uint64_t length)
 {
-    int i;
+    uint64_t i;
     unsigned int bit;
 
     // Check if the int is possible to be represented with length bits
-    if (n >= (unsigned int)(0x01 << length))
+    if (n >= ((unsigned)0x01 << length))
     {
         cerr << "Warning: " << length << " bits is not enough to encode " 
              << n << '.' << endl;
     }
 
     // Write out the bit representation of n
-    for (i=length-1; i>=0; i--)
+    for (i=length; i>0; i--)
     {
-        bit = n & (0x01 << i);
-        bit >>= i;
+        bit = n & (0x01 << (i-1));
+        bit >>= (i-1);
         write_bit(bit);
     }
 }
@@ -160,16 +160,16 @@ unsigned int BitReader::read_bit()
     return bit;
 }
 
-unsigned int BitReader::binary_to_int(unsigned int length)
+uint64_t BitReader::binary_to_int(uint64_t length)
 {
-    int i;
-    unsigned int bit, n = 0;
+    uint64_t i, n = 0;
+    unsigned int bit;
 
     // Read the integer
-    for (i=length-1; i>=0; i--)
+    for (i=length; i>0; i--)
     {
         bit = read_bit();
-        n |= (bit << i); 
+        n |= (bit << (i-1)); 
     }
     return n;
 }
@@ -224,9 +224,9 @@ GolombCoder::GolombCoder(BitReader &breader, unsigned int b) :
     }
 }
 
-void GolombCoder::golomb_encode(unsigned int n, unsigned int b, unsigned int log2b)
+void GolombCoder::golomb_encode(uint64_t n, unsigned int b, unsigned int log2b)
 {
-    unsigned int quotient, remainder, i;
+    uint64_t quotient, remainder, i;
 
     // Get the quotient and the remainder from dividing n by b
     quotient = n >> log2b;
@@ -245,7 +245,7 @@ void GolombCoder::golomb_encode(unsigned int n, unsigned int b, unsigned int log
     return;
 }
 
-void GolombCoder::golomb_encode(unsigned int n, unsigned int b)
+void GolombCoder::golomb_encode(uint64_t n, unsigned int b)
 {
     unsigned int log2b;
 
@@ -261,7 +261,7 @@ void GolombCoder::golomb_encode(unsigned int n, unsigned int b)
     return;
 }
 
-void GolombCoder::golomb_encode(unsigned int n)
+void GolombCoder::golomb_encode(uint64_t n)
 {
     golomb_encode(n, this->b, this->log2b);
     return;
@@ -288,9 +288,10 @@ int GolombCoder::is_power_of_two(unsigned int b)
     return false;
 }
 
-unsigned int GolombCoder::golomb_decode(unsigned int b, unsigned int log2b)
+uint64_t GolombCoder::golomb_decode(unsigned int b, unsigned int log2b)
 {
-    unsigned int quotient, remainder, bit;
+    uint64_t quotient, remainder;
+	unsigned int bit;
 
     // Decode the quotient
     quotient = 0;
@@ -308,7 +309,7 @@ unsigned int GolombCoder::golomb_decode(unsigned int b, unsigned int log2b)
     return quotient*b+remainder;
 }
 
-unsigned int GolombCoder::golomb_decode(unsigned int b)
+uint64_t GolombCoder::golomb_decode(unsigned int b)
 {
     unsigned int log2b;
 
@@ -322,7 +323,7 @@ unsigned int GolombCoder::golomb_decode(unsigned int b)
     return golomb_decode(b, log2b);
 }
 
-unsigned int GolombCoder::golomb_decode()
+uint64_t GolombCoder::golomb_decode()
 {
     return golomb_decode(this->b, this->log2b);
 }

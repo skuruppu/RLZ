@@ -24,6 +24,7 @@
 
 #include <fstream>
 #include <exception>
+#include <stdint.h>
 
 class BitReader
 {
@@ -39,7 +40,7 @@ class BitReader
 
         // Read the binary representation of an integer that takes
         // length bits
-        unsigned int binary_to_int(unsigned int length);
+        uint64_t binary_to_int(uint64_t length);
 
     private:
         std::ifstream &infile;
@@ -74,7 +75,7 @@ class BitWriter
 
         // Writes the given integer in binary representation using
         // length bits
-        void int_to_binary(unsigned int n, unsigned int length);
+        void int_to_binary(uint64_t n, uint64_t length);
 
     private:
         // Output stream
@@ -107,17 +108,17 @@ class GolombCoder
 
         // Golomb encoding either using the default divisor or when the
         // divisor was set by the constructor
-        void golomb_encode(unsigned int n);
+        void golomb_encode(uint64_t n);
 
         // Golomb encoding when a custom divisor is used
-        void golomb_encode(unsigned int n, unsigned int b);
+        void golomb_encode(uint64_t n, unsigned int b);
 
         // Golomb decoding either using the default divisor or when the
         // divisor was set by the constructor
-        unsigned int golomb_decode();
+        uint64_t golomb_decode();
 
         // Golomb decoding when a custom divisor is used
-        unsigned int golomb_decode(unsigned int b);
+        uint64_t golomb_decode(unsigned int b);
 
     private:
         // Output stream for Golomb encoding
@@ -137,10 +138,10 @@ class GolombCoder
         int is_power_of_two(unsigned int b);
 
         // The method that does the Golomb encoding
-        void golomb_encode(unsigned int n, unsigned int b, unsigned int log2b);
+        void golomb_encode(uint64_t n, unsigned int b, unsigned int log2b);
 
         // The method that does the Golomb decoding
-        unsigned int golomb_decode(unsigned int b, unsigned int log2b);
+        uint64_t golomb_decode(unsigned int b, unsigned int log2b);
 };
 
 class BitsUnexpectedException: public std::exception
