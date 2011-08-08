@@ -327,7 +327,7 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
             // array boundaries
             if (!runofns && len > 0)
             {
-                facwriter.output_factor(sa->getField(pl), len);
+                facwriter.write_factor(sa->getField(pl), len);
                 pl = 0; pr = refseqlen; len = 0; 
             }
             runofns = true;
@@ -338,7 +338,7 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
             // A run of Ns just ended so print the factor
             if (runofns)
             {
-                facwriter.output_factor(refseqlen, len);
+                facwriter.write_factor(refseqlen, len);
                 runofns = false;
                 len = 0;
             }
@@ -349,7 +349,7 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
             // Couldn't extend current match so print factor
             if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
             {
-                facwriter.output_factor(sa->getField(pl), len);
+                facwriter.write_factor(sa->getField(pl), len);
                 infile.unget();
                 pl = 0; pr = refseqlen; len = 0;
             }
@@ -367,9 +367,9 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
     if (len > 0)
     {
         if (runofns)
-            facwriter.output_factor(refseqlen, len);
+            facwriter.write_factor(refseqlen, len);
         else
-            facwriter.output_factor(sa->getField(pl), len);
+            facwriter.write_factor(sa->getField(pl), len);
     }
 }
 
@@ -619,12 +619,12 @@ FactorWriterBinary::~FactorWriterBinary()
     delete gcoder;
 }
 
-void FactorWriterText::output_factor(uint64_t pos, uint64_t len)
+void FactorWriterText::write_factor(uint64_t pos, uint64_t len)
 {
     outfile << pos << ' ' << len << endl;
 }
 
-void FactorWriterBinary::output_factor(uint64_t pos, uint64_t len)
+void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
 {
     bwriter->int_to_binary(pos, maxposbits);
     gcoder->golomb_encode(len);

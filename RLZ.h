@@ -22,7 +22,7 @@ class FactorWriter
          * @param pos Position component of factor
          * @param len Length component of factor
          */
-        virtual void output_factor(uint64_t pos, uint64_t len) = 0;
+        virtual void write_factor(uint64_t pos, uint64_t len) = 0;
 };
 
 class FactorWriterText : public FactorWriter
@@ -38,7 +38,7 @@ class FactorWriterText : public FactorWriter
          * @param pos Position component of factor
          * @param len Length component of factor
          */
-        void output_factor(uint64_t pos, uint64_t len);
+        void write_factor(uint64_t pos, uint64_t len);
 
     private:
         
@@ -63,7 +63,7 @@ class FactorWriterBinary : public FactorWriter
          * @param pos Position component of factor
          * @param len Length component of factor
          */
-        void output_factor(uint64_t pos, uint64_t len);
+        void write_factor(uint64_t pos, uint64_t len);
 
     private:
 
