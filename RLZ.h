@@ -189,7 +189,7 @@ class RLZCompress : RLZ
 
 };
 
-class RLZDecompress
+class RLZDecompress : RLZ
 {
 
     public:

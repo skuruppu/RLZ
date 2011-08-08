@@ -548,8 +548,53 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
     return;
 }
 
+RLZDecompress::RLZDecompress(char **filenames, uint64_t numfiles)
+{
+
+    this->filenames = filenames;
+    this->numfiles = numfiles;
+
+    initialise_nucl_converters();
+
+    // Open reference sequence file
+    ifstream infile(filenames[0], ifstream::in);
+    if (!infile.good())
+    {
+        cerr << "Couldn't open file " << filenames[0] << ".\n";
+        exit(1);
+    }
+
+    // Get the reference sequence length
+    infile.seekg(0, ios::end);
+    refseqlen = infile.tellg();
+    infile.seekg(0, ios::beg);
+
+    // Read the reference sequence
+    refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
+    store_sequence(infile, filenames[0], refseq, refseqlen);
+    infile.close();
+
+    // Calculate the log of the reference sequence length
+    uint64_t i = floor(log2(refseqlen));
+    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
+}
+
+RLZDecompress::~RLZDecompress()
+{
+    delete refseq;
+}
+
+void RLZDecompress::decompress()
+{
+
+}
+
 FactorWriterText::FactorWriterText(ofstream& outfile) :
-    outfile(outfile) {}
+    outfile(outfile)
+{
+    // Output the type of encoding
+    outfile << 't' << endl;    
+}
 
 FactorWriterBinary::FactorWriterBinary(ofstream& outfile,
                                        uint64_t maxposbits)
@@ -558,6 +603,9 @@ FactorWriterBinary::FactorWriterBinary(ofstream& outfile,
     gcoder = new GolombCoder(*bwriter, 64);
 
     this->maxposbits = maxposbits;
+
+    // Output the type of encoding
+    bwriter->int_to_binary((uint64_t)'b', 8);
 
     // Output the Golomb coding parameter
     bwriter->int_to_binary(64, 8);
