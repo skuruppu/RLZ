@@ -123,7 +123,7 @@ class RLZCompress : RLZ
 {
     public:
 
-        /** Constructor for the RLZ class.
+        /** Constructor for the RLZ compress class.
          * @param filenames Filenames for sequences to be compressed
          * @param numfiles Number of files in the dataset
          * @param encoding Type of encoding to be used
@@ -143,9 +143,6 @@ class RLZCompress : RLZ
 
         /** Method for compression. */
         void compress();
-
-        /** Method for decompression. */
-        void decompress();
 
     private:
 
@@ -192,3 +189,23 @@ class RLZCompress : RLZ
 
 };
 
+class RLZDecompress
+{
+
+    public:
+
+        /** Constructor for the RLZ decompressor class.
+         * @param filenames Filenames for sequences to be compressed
+         * @param numfiles Number of files in the dataset
+         * @param encoding Type of encoding to be used
+         */
+        RLZDecompress(char **filenames, uint64_t numfiles);
+
+        /** Destructor for the class. */
+        ~RLZDecompress();
+
+        /** Method for decompression. */
+        void decompress();
+
+    private:
+};
