@@ -77,6 +77,87 @@ class FactorWriterBinary : public FactorWriter
         uint64_t maxposbits;
 };
 
+class FactorReader
+{
+    public:
+
+        FactorReader ();
+
+        /** Constructor for the class.
+         * @param infile Input file stream
+         * @param maxposbits Number of bits for encoding positions
+         */
+        FactorReader(ifstream& infile, uint64_t maxposbits);
+
+        /** Destructor for the class. */
+        virtual ~FactorReader();
+
+        /** Read an RLZ factor.
+         * @param pos Output position component of factor
+         * @param len Output length component of factor
+         * @return Status to indicate if a factor was read successfully
+         */
+        virtual bool read_factor(uint64_t *pos, uint64_t *len);
+
+    private:
+        
+        FactorReader *facreader;
+};
+
+class FactorReaderText : public FactorReader
+{
+    public:
+
+        /** Constructor for the class.
+         * @param infile Input file stream
+         */
+        FactorReaderText(ifstream& infile);
+        
+        /** Read an RLZ factor.
+         * @param pos Output position component of factor
+         * @param len Output length component of factor
+         * @return Status to indicate if a factor was read successfully
+         */
+        bool read_factor(uint64_t *pos, uint64_t *len);
+
+    private:
+        
+        // Input stream to read from
+        ifstream& infile;
+};
+
+class FactorReaderBinary : public FactorReader
+{
+    public:
+
+        /** Constructor for the class.
+         * @param infile Input file stream
+         * @param maxposbits Number of bits for encoding positions
+         */
+        FactorReaderBinary(ifstream& infile, uint64_t maxposbits);
+
+        /** Destructor for the class. */
+        ~FactorReaderBinary();
+
+        /** Read an RLZ factor.
+         * @param pos Output position component of factor
+         * @param len Output length component of factor
+         * @return Status to indicate if a factor was read successfully
+         */
+        bool read_factor(uint64_t *pos, uint64_t *len);
+
+    private:
+
+        // To read bits and integers
+        BitReader *breader;
+
+        // To Golomb encode numbers
+        GolombCoder *gdecoder;
+
+        // Maximum number of bits to use to encode a position
+        uint64_t maxposbits;
+};
+
 // A base class for RLZ compression and decompression
 class RLZ
 {

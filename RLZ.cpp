@@ -586,7 +586,41 @@ RLZDecompress::~RLZDecompress()
 
 void RLZDecompress::decompress()
 {
+    uint64_t i;
+    char infilename[1024], outfilename[1024];
+    ifstream infile;
+    ofstream outfile;
 
+    for (i=1; i<numfiles; i++)
+    {
+        // Open sequence file to be decompressed
+        sprintf(infilename, "%s.fac", filenames[i]);
+        infile.open(infilename, ifstream::in);
+        if (!infile.good())
+        {
+            cerr << "Couldn't open file " << infilename << ".\n";
+            exit(1);
+        }
+
+        // Open output file to write decompressed sequence to
+        sprintf(outfilename, "%s.dec", filenames[i]);
+        outfile.open(outfilename, ofstream::out);
+        if (!outfile.good())
+        {
+            cerr << "Couldn't open file " << outfilename << ".\n";
+            exit(1);
+        }
+
+        // Intialise the factor reader
+        FactorReader *facreader = new FactorReader(infile, logrefseqlen);
+
+        //relative_LZ_defactorise(*facreader, infilename, outfile);
+
+        delete facreader;
+
+        infile.close();
+        outfile.close();
+    }
 }
 
 FactorWriterText::FactorWriterText(ofstream& outfile) :
@@ -628,4 +662,104 @@ void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
 {
     bwriter->int_to_binary(pos, maxposbits);
     gcoder->golomb_encode(len);
+}
+
+FactorReader::FactorReader() :
+    facreader(NULL) {}
+
+FactorReader::FactorReader(ifstream& infile, uint64_t maxposbits)
+{
+    infile.exceptions(ifstream::failbit | ifstream::badbit |
+                      ifstream::eofbit);
+
+    // Read a byte to figure out what encoding was used
+    int encoding = infile.get();
+
+    if (encoding == 't')
+    {
+        facreader = new FactorReaderText(infile);
+        // Read the new line
+        infile.get();
+    }
+    else if (encoding == 'b')
+    {
+        facreader = new FactorReaderBinary(infile, maxposbits);
+    }
+    else
+    {
+        cerr << "Invalid encoding in file.\n";
+        exit(1);
+    }
+}
+
+FactorReader::~FactorReader()
+{
+    delete facreader;
+}
+
+bool FactorReader::read_factor(uint64_t *pos, uint64_t *len)
+{
+    return facreader->read_factor(pos, len);
+}
+
+FactorReaderText::FactorReaderText(ifstream& infile) :
+    infile(infile) {}
+        
+bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len)
+{
+    try
+    {
+        infile >> *pos >> *len;
+    }
+    catch (ifstream::failure e)
+    {
+        if (infile.eof())
+        {
+            *pos = NULL; *len = NULL;
+            return false;
+        }
+        else
+        {
+            cerr << e.what();
+            exit(1);
+        }
+    }
+
+    return true;
+}
+
+FactorReaderBinary::FactorReaderBinary(ifstream& infile, 
+                                       uint64_t maxposbits)
+{
+    breader = new BitReader(infile);
+    uint64_t divisor = breader->binary_to_int(8);
+    gdecoder = new GolombCoder(*breader, (unsigned int)divisor);
+
+    this->maxposbits = maxposbits;
+}
+
+FactorReaderBinary::~FactorReaderBinary()
+{
+    delete breader;
+    delete gdecoder;
+}
+
+bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len)
+{
+    try
+    {
+        *pos = breader->binary_to_int(maxposbits);
+        *len = gdecoder->golomb_decode();
+    }
+    catch (BitsEOFException& eofexp)
+    {
+        *pos = NULL; *len = NULL;
+        return false;
+    }
+    catch (BitsUnexpectedException& unexp)
+    {
+        cerr << unexp.what();
+        exit(1);
+    }
+    return true;
 }
