@@ -27,7 +27,8 @@ void initialise_nucl_converters()
 }
 
 
-RLZ::RLZ(char **filenames, uint64_t numfiles, char encoding)
+RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
+                         char encoding)
 {
     this->filenames = filenames;
     this->numfiles = numfiles;
@@ -113,7 +114,8 @@ RLZ::RLZ(char **filenames, uint64_t numfiles, char encoding)
     logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 }
 
-RLZ::RLZ(char **filenames, uint64_t numfiles, bool state)
+RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
+                         bool state)
 {
     this->filenames = filenames;
     this->numfiles = numfiles;
@@ -186,7 +188,7 @@ RLZ::RLZ(char **filenames, uint64_t numfiles, bool state)
     logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 }
 
-RLZ::~RLZ()
+RLZCompress::~RLZCompress()
 {
     delete refseq;
     delete sa;
@@ -246,7 +248,7 @@ void RLZ::store_sequence(ifstream &infile, char *filename,
     return;
 }
 
-void RLZ::compress()
+void RLZCompress::compress()
 {
     uint64_t i;
     char outfilename[1024];
@@ -293,8 +295,9 @@ void RLZ::compress()
 }
 
 
-void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
-                                FactorWriter &facwriter)
+void RLZCompress::relative_LZ_factorise(ifstream& infile, 
+                                        char *filename,
+                                        FactorWriter &facwriter)
 {
     int c;
     uint64_t i, len;
@@ -370,8 +373,9 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
     }
 }
 
-void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
-                                ofstream& outfile, bool state)
+void RLZCompress::relative_LZ_factorise(ifstream& infile, 
+                                        char *filename,
+                                        ofstream& outfile, bool state)
 {
     int c;
     uint64_t i, len;
@@ -449,8 +453,9 @@ void RLZ::relative_LZ_factorise(ifstream& infile, char *filename,
     }
 }
 
-void RLZ::sa_binary_search(uint64_t pl, uint64_t pr, int c,
-                           uint64_t offset, uint64_t *cl, uint64_t *cr)
+void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
+                                   uint64_t offset, uint64_t *cl,
+                                   uint64_t *cr)
 {
     uint64_t low, high, mid; 
     int midval, midvalleft, midvalright;
