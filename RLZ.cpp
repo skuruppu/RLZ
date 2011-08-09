@@ -614,12 +614,47 @@ void RLZDecompress::decompress()
         // Intialise the factor reader
         FactorReader *facreader = new FactorReader(infile, logrefseqlen);
 
-        //relative_LZ_defactorise(*facreader, infilename, outfile);
+        relative_LZ_defactorise(*facreader, infilename, outfile);
 
         delete facreader;
 
         infile.close();
         outfile.close();
+    }
+}
+
+void RLZDecompress::relative_LZ_defactorise(FactorReader& facreader,
+                                            char *filename,
+                                            ofstream& outfile)
+{
+    uint64_t pos, len, i;
+
+    try
+    {
+        // Read factors until EOF
+        while (facreader.read_factor(&pos, &len))
+        {
+            // Run length encoded Ns
+            if (pos == refseqlen)
+            {
+                for (i=0; i<len; i++)
+                {
+                    outfile << 'n';
+                }
+                continue;
+            }
+            // Standard factor
+            for (i=pos; i<pos+len; i++)
+            {
+                outfile << (char)int_to_nucl[refseq->getField(i)];
+            }
+        }
+    }
+    catch (exception e)
+    {
+        cerr << e.what() << endl;
+        cerr << "Could not read from file " << filename << ".\n";
+        exit(1);
     }
 }
 
@@ -675,12 +710,14 @@ FactorReader::FactorReader(ifstream& infile, uint64_t maxposbits)
     // Read a byte to figure out what encoding was used
     int encoding = infile.get();
 
+    // Plain text
     if (encoding == 't')
     {
         facreader = new FactorReaderText(infile);
         // Read the new line
         infile.get();
     }
+    // Binary output
     else if (encoding == 'b')
     {
         facreader = new FactorReaderBinary(infile, maxposbits);
@@ -713,16 +750,14 @@ bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len)
     }
     catch (ifstream::failure e)
     {
+        // EOF detected
         if (infile.eof())
         {
             *pos = NULL; *len = NULL;
             return false;
         }
-        else
-        {
-            cerr << e.what();
-            exit(1);
-        }
+        // Some other IO error
+        throw e;
     }
 
     return true;
@@ -751,15 +786,11 @@ bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len)
         *pos = breader->binary_to_int(maxposbits);
         *len = gdecoder->golomb_decode();
     }
+    // EOF reached
     catch (BitsEOFException& eofexp)
     {
         *pos = NULL; *len = NULL;
         return false;
-    }
-    catch (BitsUnexpectedException& unexp)
-    {
-        cerr << unexp.what();
-        exit(1);
     }
     return true;
 }

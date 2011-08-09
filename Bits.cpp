@@ -140,8 +140,20 @@ unsigned int BitReader::read_bit()
     // read a new byte from the input file.
     if (remaining == 0)
     {
-        infile.read((char*)&currbyte, sizeof(unsigned char));
-        remaining = BITSPERBYTE;
+        // The infile object may have exceptions set up to be raised
+        // when an IO error occurs so try to catch them if possible
+        try
+        {
+            infile.read((char*)&currbyte, sizeof(unsigned char));
+            remaining = BITSPERBYTE;
+        }
+        catch (ifstream::failure e)
+        {
+            if (infile.eof())
+                throw eofexp;
+            else
+                throw uexp;
+        }
     }
 
     // Store the next bit in the stream into the output variable

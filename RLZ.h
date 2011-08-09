@@ -289,4 +289,13 @@ class RLZDecompress : RLZ
         void decompress();
 
     private:
+
+        /** Conducts the relative Lempel-Ziv decompression of the
+         * sequence inside the infile and writes the output to outfile.
+         * @param facreader FactorReader object to read factors from
+         * @param filename Name of the input file
+         * @param outfile Output file stream
+         */
+        void relative_LZ_defactorise(FactorReader& facreader,
+                                     char *filename, ofstream& outfile);
 };
