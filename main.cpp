@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 
     if (!isdecomp)
     {
-        RLZCompress rlz(argv+optind, argc-optind, encoding);
+        RLZCompress rlz(argv+optind, argc-optind, encoding, isshort);
 
         rlz.compress();
     }

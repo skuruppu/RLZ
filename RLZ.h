@@ -21,9 +21,10 @@ class FactorWriter
         /** Constructor for the class.
          * @param outfile Output file stream
          * @param encoding Type of encoding to be used
+         * @param isshort Whether to short factor encode or not
          * @param maxposbits Number of bits for encoding positions
          */
-        FactorWriter(ofstream& outfile, char encoding,
+        FactorWriter(ofstream& outfile, char encoding, bool isshort,
                      uint64_t maxposbits);
 
         /** Destructor for the class. */
@@ -46,8 +47,9 @@ class FactorWriterText : public FactorWriter
 
         /** Constructor for the class.
          * @param outfile Output file stream
+         * @param isshort Whether to short factor encode or not
          */
-        FactorWriterText(ofstream& outfile);
+        FactorWriterText(ofstream& outfile, bool isshort);
         
         /** Output an RLZ factor.
          * @param pos Position component of factor
@@ -59,6 +61,9 @@ class FactorWriterText : public FactorWriter
         
         // Output stream to write to
         ofstream& outfile;
+
+        // Whether to short factor encode or not
+        bool isshort;
 };
 
 class FactorWriterBinary : public FactorWriter
@@ -68,8 +73,10 @@ class FactorWriterBinary : public FactorWriter
         /** Constructor for the class.
          * @param outfile Output file stream
          * @param maxposbits Number of bits for encoding positions
+         * @param isshort Whether to short factor encode or not
          */
-        FactorWriterBinary(ofstream& outfile, uint64_t maxposbits);
+        FactorWriterBinary(ofstream& outfile, bool isshort,
+                           uint64_t maxposbits);
 
         /** Destructor for the class. */
         ~FactorWriterBinary();
@@ -90,6 +97,9 @@ class FactorWriterBinary : public FactorWriter
 
         // Maximum number of bits to use to encode a position
         uint64_t maxposbits;
+
+        // Whether to short factor encode or not
+        bool isshort;
 };
 
 class FactorReader
@@ -223,8 +233,10 @@ class RLZCompress : RLZ
          * @param filenames Filenames for sequences to be compressed
          * @param numfiles Number of files in the dataset
          * @param encoding Type of encoding to be used
+         * @param isshort Encode shorter factors as substr,len pairs
          */
-        RLZCompress(char **filenames, uint64_t numfiles, char encoding='b');
+        RLZCompress(char **filenames, uint64_t numfiles, 
+                    char encoding='b', bool isshort=false);
 
         /** Temporary constructor that implements the suffix tree
          * instead of a suffix array.
@@ -250,6 +262,9 @@ class RLZCompress : RLZ
 
         // Type of encoding
         char encoding;
+
+        // Short factor encoding
+        bool isshort;
 
         /** Conducts the relative Lempel-Ziv compression of the sequence
          * inside the infile and writes the output to outfile.

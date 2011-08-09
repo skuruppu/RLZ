@@ -28,11 +28,12 @@ void initialise_nucl_converters()
 
 
 RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
-                         char encoding)
+                         char encoding, bool isshort)
 {
     this->filenames = filenames;
     this->numfiles = numfiles;
     this->encoding = encoding;
+    this->isshort = isshort;
 
     initialise_nucl_converters();
 
@@ -276,6 +277,7 @@ void RLZCompress::compress()
 
         // Intialise the factor writer
         FactorWriter *facwriter = new FactorWriter(outfile, encoding,
+                                                   isshort,
                                                    logrefseqlen);
 
         relative_LZ_factorise(infile, filenames[i], *facwriter);
@@ -655,21 +657,34 @@ FactorWriter::FactorWriter() :
     facwriter(NULL) {}
 
 FactorWriter::FactorWriter(ofstream& outfile, char encoding,
-                           uint64_t maxposbits)
+                           bool isshort, uint64_t maxposbits)
 {
+    // The encoding format is tbsl---- where t=text, b=binary,
+    // s=shortfac encoding, l=liss encoding
     if (encoding == 'b')
     {
         // Output the type of encoding
-        outfile << 'b' << endl;
+        // 01100000
+        if (isshort)
+            outfile << (unsigned char)96;
+        // 01000000
+        else
+            outfile << (unsigned char)64;
 
-        facwriter = new FactorWriterBinary(outfile, maxposbits);
+        facwriter = new FactorWriterBinary(outfile, isshort,
+                                           maxposbits);
     }
     else if (encoding == 't')
     {
         // Output the type of encoding
-        outfile << 't' << endl;    
+        // 10100000
+        if (isshort )
+            outfile << (unsigned char)160 << endl;
+        // 10000000
+        else
+            outfile << (unsigned char)128 << endl;
 
-        facwriter = new FactorWriterText(outfile);
+        facwriter = new FactorWriterText(outfile, isshort);
     }
     else
     {
@@ -688,15 +703,16 @@ FactorWriter::~FactorWriter()
     delete facwriter;
 }
 
-FactorWriterText::FactorWriterText(ofstream& outfile) :
-    outfile(outfile) {}
+FactorWriterText::FactorWriterText(ofstream& outfile, bool isshort) :
+    outfile(outfile), isshort(isshort) {}
 
-FactorWriterBinary::FactorWriterBinary(ofstream& outfile,
+FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
                                        uint64_t maxposbits)
 {
     bwriter = new BitWriter(outfile);
     gcoder = new GolombCoder(*bwriter, 64);
 
+    this->isshort = isshort;
     this->maxposbits = maxposbits;
 
     // Output the Golomb coding parameter
@@ -731,17 +747,18 @@ FactorReader::FactorReader(ifstream& infile, uint64_t maxposbits)
                       ifstream::eofbit);
 
     // Read a byte to figure out what encoding was used
-    int encoding = infile.get();
+    unsigned char encodings;
+    infile >> encodings;
 
-    // Plain text
-    if (encoding == 't')
+    // Plain text 10000000
+    if (encodings & ((unsigned)1<<7))
     {
         facreader = new FactorReaderText(infile);
         // Read the new line
         infile.get();
     }
     // Binary output
-    else if (encoding == 'b')
+    else if (encodings & ((unsigned)1<<6))
     {
         facreader = new FactorReaderBinary(infile, maxposbits);
     }
