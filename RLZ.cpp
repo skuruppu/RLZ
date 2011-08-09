@@ -275,15 +275,8 @@ void RLZCompress::compress()
         }
 
         // Intialise the factor writer
-        FactorWriter *facwriter = NULL;
-        if (encoding == 'b')
-        {
-            facwriter = new FactorWriterBinary(outfile, logrefseqlen);
-        }
-        else if (encoding == 't')
-        {
-            facwriter = new FactorWriterText(outfile);
-        }
+        FactorWriter *facwriter = new FactorWriter(outfile, encoding,
+                                                   logrefseqlen);
 
         relative_LZ_factorise(infile, filenames[i], *facwriter);
 
@@ -658,12 +651,45 @@ void RLZDecompress::relative_LZ_defactorise(FactorReader& facreader,
     }
 }
 
-FactorWriterText::FactorWriterText(ofstream& outfile) :
-    outfile(outfile)
+FactorWriter::FactorWriter() :
+    facwriter(NULL) {}
+
+FactorWriter::FactorWriter(ofstream& outfile, char encoding,
+                           uint64_t maxposbits)
 {
-    // Output the type of encoding
-    outfile << 't' << endl;    
+    if (encoding == 'b')
+    {
+        // Output the type of encoding
+        outfile << 'b' << endl;
+
+        facwriter = new FactorWriterBinary(outfile, maxposbits);
+    }
+    else if (encoding == 't')
+    {
+        // Output the type of encoding
+        outfile << 't' << endl;    
+
+        facwriter = new FactorWriterText(outfile);
+    }
+    else
+    {
+        cerr << "Unknown encoding type.\n";
+        exit(1);
+    }
 }
+
+void FactorWriter::write_factor(uint64_t pos, uint64_t len)
+{
+    facwriter->write_factor(pos, len);
+}
+
+FactorWriter::~FactorWriter()
+{
+    delete facwriter;
+}
+
+FactorWriterText::FactorWriterText(ofstream& outfile) :
+    outfile(outfile) {}
 
 FactorWriterBinary::FactorWriterBinary(ofstream& outfile,
                                        uint64_t maxposbits)
@@ -672,9 +698,6 @@ FactorWriterBinary::FactorWriterBinary(ofstream& outfile,
     gcoder = new GolombCoder(*bwriter, 64);
 
     this->maxposbits = maxposbits;
-
-    // Output the type of encoding
-    bwriter->int_to_binary((uint64_t)'b', 8);
 
     // Output the Golomb coding parameter
     bwriter->int_to_binary(64, 8);

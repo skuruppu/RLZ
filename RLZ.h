@@ -15,14 +15,29 @@ class FactorWriter
 {
     public:
 
+        /** Constructor for the class. */
+        FactorWriter();
+
+        /** Constructor for the class.
+         * @param outfile Output file stream
+         * @param encoding Type of encoding to be used
+         * @param maxposbits Number of bits for encoding positions
+         */
+        FactorWriter(ofstream& outfile, char encoding,
+                     uint64_t maxposbits);
+
         /** Destructor for the class. */
-        virtual ~FactorWriter() {}
+        virtual ~FactorWriter();
 
         /** Output an RLZ factor.
          * @param pos Position component of factor
          * @param len Length component of factor
          */
-        virtual void write_factor(uint64_t pos, uint64_t len) = 0;
+        virtual void write_factor(uint64_t pos, uint64_t len);
+
+    private:
+        
+        FactorWriter *facwriter;
 };
 
 class FactorWriterText : public FactorWriter
