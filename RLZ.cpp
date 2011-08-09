@@ -9,6 +9,7 @@ const char *RLZ::NUCLALPHA = "acgnt";
 
 unsigned char nucl_to_int[256] = {0};
 unsigned char int_to_nucl[RLZ::NUCLALPHASIZE+1];
+unsigned char int_to_2bpb[RLZ::NUCLALPHASIZE+1];
 
 void initialise_nucl_converters()
 {
@@ -24,6 +25,12 @@ void initialise_nucl_converters()
     {
         int_to_nucl[i+1] = RLZ::NUCLALPHA[i];
     }
+
+    int_to_2bpb[1] = 0; // a
+    int_to_2bpb[2] = 1; // c
+    int_to_2bpb[3] = 2; // g
+    int_to_2bpb[4] = -1; // n (invalid)
+    int_to_2bpb[5] = 3; // t
 }
 
 
@@ -277,7 +284,8 @@ void RLZCompress::compress()
 
         // Intialise the factor writer
         FactorWriter *facwriter = new FactorWriter(outfile, encoding,
-                                                   isshort,
+                                                   isshort, this->refseq,
+                                                   refseqlen,
                                                    logrefseqlen);
 
         relative_LZ_factorise(infile, filenames[i], *facwriter);
@@ -657,7 +665,8 @@ FactorWriter::FactorWriter() :
     facwriter(NULL) {}
 
 FactorWriter::FactorWriter(ofstream& outfile, char encoding,
-                           bool isshort, uint64_t maxposbits)
+                           bool isshort, Array *refseq, 
+                           uint64_t refseqlen, uint64_t logrefseqlen)
 {
     // The encoding format is tbsl---- where t=text, b=binary,
     // s=shortfac encoding, l=liss encoding
@@ -671,8 +680,8 @@ FactorWriter::FactorWriter(ofstream& outfile, char encoding,
         else
             outfile << (unsigned char)64;
 
-        facwriter = new FactorWriterBinary(outfile, isshort,
-                                           maxposbits);
+        facwriter = new FactorWriterBinary(outfile, isshort, refseq,
+                                           refseqlen, logrefseqlen);
     }
     else if (encoding == 't')
     {
@@ -684,7 +693,8 @@ FactorWriter::FactorWriter(ofstream& outfile, char encoding,
         else
             outfile << (unsigned char)128 << endl;
 
-        facwriter = new FactorWriterText(outfile, isshort);
+        facwriter = new FactorWriterText(outfile, isshort, refseq,
+                                         refseqlen, logrefseqlen);
     }
     else
     {
@@ -703,20 +713,34 @@ FactorWriter::~FactorWriter()
     delete facwriter;
 }
 
-FactorWriterText::FactorWriterText(ofstream& outfile, bool isshort) :
-    outfile(outfile), isshort(isshort) {}
+FactorWriterText::FactorWriterText(ofstream& outfile, bool isshort, 
+                                   Array *refseq, uint64_t refseqlen,
+                                   uint64_t logrefseqlen) :
+    outfile(outfile), isshort(isshort)
+{
+    this->refseq = refseq;
+    this->refseqlen = refseqlen; 
+    this->logrefseqlen = logrefseqlen;
+}
 
 FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
-                                       uint64_t maxposbits)
+                                       Array *refseq, uint64_t refseqlen,
+                                       uint64_t logrefseqlen)
 {
     bwriter = new BitWriter(outfile);
     gcoder = new GolombCoder(*bwriter, 64);
+    gcodershort = new GolombCoder(*bwriter, 8);
 
     this->isshort = isshort;
-    this->maxposbits = maxposbits;
+    this->refseq = refseq;
+    this->refseqlen = refseqlen; 
+    this->logrefseqlen = logrefseqlen;
 
     // Output the Golomb coding parameter
     bwriter->int_to_binary(64, 8);
+
+    // Ouptut the Golomb coding parameter for short ints
+    bwriter->int_to_binary(8, 8);
 }
 
 FactorWriterBinary::~FactorWriterBinary()
@@ -729,19 +753,79 @@ FactorWriterBinary::~FactorWriterBinary()
 
 void FactorWriterText::write_factor(uint64_t pos, uint64_t len)
 {
+    uint64_t i;
+
+    // 2*len+len/8+4 < logrefseqlen+len/64+7
+    if (isshort && pos!=refseqlen && len < (64.0/135)*(logrefseqlen+3))
+    {
+        for (i=pos; i<pos+len; i++)
+        {
+            // Don't short factor encode if there are 'n's in the factor
+            if (int_to_nucl[refseq->getField(i)] == 'n')
+            {
+                outfile << pos << ' ' << len << endl;
+                return;
+            }
+        }
+
+        // Output a short factor, substring followed by the length
+        for (i=pos; i<pos+len; i++)
+        {
+            outfile << int_to_nucl[refseq->getField(i)];
+        }
+        outfile << ' ' << len << endl;
+        return;
+    }
+
+    // Just a standard factor
     outfile << pos << ' ' << len << endl;
 }
 
 void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
 {
-    bwriter->int_to_binary(pos, maxposbits);
+    uint64_t i;
+
+    // 2*len+len/8+4 < logrefseqlen+len/64+7
+    if (isshort && pos!=refseqlen && len < (64.0/135)*(logrefseqlen+3))
+    {
+        for (i=pos; i<pos+len; i++)
+        {
+            // Don't short factor encode if there are 'n's in the factor
+            if (int_to_nucl[refseq->getField(i)] == 'n')
+            {
+                // Indicate this is not a short factor
+                bwriter->write_bit(1);
+                // Encode pos and len pair
+                bwriter->int_to_binary(pos, logrefseqlen);
+                gcoder->golomb_encode(len);
+                return;
+            }
+        }
+
+        // Valid short factor so first output a 0 bit to indicate this
+        bwriter->write_bit(0);
+        // Encode length followed by 2bpb substring
+        gcodershort->golomb_encode(len);
+        for (i=pos; i<pos+len; i++)
+        {
+            bwriter->int_to_binary(int_to_2bpb[refseq->getField(i)], 2);
+        }
+        return;
+    }
+
+    // Not a short factor so output 1 bit to indicate this is not a
+    // short factor
+    if (isshort) bwriter->write_bit(1);
+
+    // Output factor as a standard factor
+    bwriter->int_to_binary(pos, logrefseqlen);
     gcoder->golomb_encode(len);
 }
 
 FactorReader::FactorReader() :
     facreader(NULL) {}
 
-FactorReader::FactorReader(ifstream& infile, uint64_t maxposbits)
+FactorReader::FactorReader(ifstream& infile, uint64_t logrefseqlen)
 {
     infile.exceptions(ifstream::failbit | ifstream::badbit |
                       ifstream::eofbit);
@@ -760,7 +844,7 @@ FactorReader::FactorReader(ifstream& infile, uint64_t maxposbits)
     // Binary output
     else if (encodings & ((unsigned)1<<6))
     {
-        facreader = new FactorReaderBinary(infile, maxposbits);
+        facreader = new FactorReaderBinary(infile, logrefseqlen);
     }
     else
     {
@@ -804,13 +888,13 @@ bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len)
 }
 
 FactorReaderBinary::FactorReaderBinary(ifstream& infile, 
-                                       uint64_t maxposbits)
+                                       uint64_t logrefseqlen)
 {
     breader = new BitReader(infile);
     uint64_t divisor = breader->binary_to_int(8);
     gdecoder = new GolombCoder(*breader, (unsigned int)divisor);
 
-    this->maxposbits = maxposbits;
+    this->logrefseqlen = logrefseqlen;
 }
 
 FactorReaderBinary::~FactorReaderBinary()
@@ -823,7 +907,7 @@ bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len)
 {
     try
     {
-        *pos = breader->binary_to_int(maxposbits);
+        *pos = breader->binary_to_int(logrefseqlen);
         *len = gdecoder->golomb_decode();
     }
     // EOF reached

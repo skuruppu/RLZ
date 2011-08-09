@@ -22,10 +22,13 @@ class FactorWriter
          * @param outfile Output file stream
          * @param encoding Type of encoding to be used
          * @param isshort Whether to short factor encode or not
-         * @param maxposbits Number of bits for encoding positions
+         * @param refseq Reference sequence
+         * @param refseqlen Length of reference sequence
+         * @param logrefseqlen Number of bits for encoding positions
          */
         FactorWriter(ofstream& outfile, char encoding, bool isshort,
-                     uint64_t maxposbits);
+                     cds_utils::Array *refseq, uint64_t refseqlen,
+                     uint64_t logrefseqlen);
 
         /** Destructor for the class. */
         virtual ~FactorWriter();
@@ -35,6 +38,14 @@ class FactorWriter
          * @param len Length component of factor
          */
         virtual void write_factor(uint64_t pos, uint64_t len);
+
+    protected:
+        
+        // Reference sequence as a bit vector with 3bpb encoding
+        // {a,c,g,t,n}
+        cds_utils::Array *refseq;
+        uint64_t refseqlen;
+        uint64_t logrefseqlen;
 
     private:
         
@@ -48,8 +59,12 @@ class FactorWriterText : public FactorWriter
         /** Constructor for the class.
          * @param outfile Output file stream
          * @param isshort Whether to short factor encode or not
+         * @param refseq Reference sequence
+         * @param refseqlen Length of reference sequence
          */
-        FactorWriterText(ofstream& outfile, bool isshort);
+        FactorWriterText(ofstream& outfile, bool isshort,
+                         cds_utils::Array *refseq, uint64_t refseqlen,
+                         uint64_t logrefseqlen);
         
         /** Output an RLZ factor.
          * @param pos Position component of factor
@@ -72,11 +87,14 @@ class FactorWriterBinary : public FactorWriter
 
         /** Constructor for the class.
          * @param outfile Output file stream
-         * @param maxposbits Number of bits for encoding positions
          * @param isshort Whether to short factor encode or not
+         * @param refseq Reference sequence
+         * @param refseqlen Length of reference sequence
+         * @param logrefseqlen Number of bits for encoding positions
          */
         FactorWriterBinary(ofstream& outfile, bool isshort,
-                           uint64_t maxposbits);
+                           cds_utils::Array *refseq, uint64_t refseqlen,
+                           uint64_t logrefseqlen);
 
         /** Destructor for the class. */
         ~FactorWriterBinary();
@@ -95,8 +113,8 @@ class FactorWriterBinary : public FactorWriter
         // To Golomb encode numbers
         GolombCoder *gcoder;
 
-        // Maximum number of bits to use to encode a position
-        uint64_t maxposbits;
+        // To Golomb encode short numbers
+        GolombCoder *gcodershort;
 
         // Whether to short factor encode or not
         bool isshort;
@@ -110,9 +128,9 @@ class FactorReader
 
         /** Constructor for the class.
          * @param infile Input file stream
-         * @param maxposbits Number of bits for encoding positions
+         * @param logrefseqlen Number of bits for encoding positions
          */
-        FactorReader(ifstream& infile, uint64_t maxposbits);
+        FactorReader(ifstream& infile, uint64_t logrefseqlen);
 
         /** Destructor for the class. */
         virtual ~FactorReader();
@@ -157,9 +175,9 @@ class FactorReaderBinary : public FactorReader
 
         /** Constructor for the class.
          * @param infile Input file stream
-         * @param maxposbits Number of bits for encoding positions
+         * @param logrefseqlen Number of bits for encoding positions
          */
-        FactorReaderBinary(ifstream& infile, uint64_t maxposbits);
+        FactorReaderBinary(ifstream& infile, uint64_t logrefseqlen);
 
         /** Destructor for the class. */
         ~FactorReaderBinary();
@@ -180,7 +198,7 @@ class FactorReaderBinary : public FactorReader
         GolombCoder *gdecoder;
 
         // Maximum number of bits to use to encode a position
-        uint64_t maxposbits;
+        uint64_t logrefseqlen;
 };
 
 // A base class for RLZ compression and decompression
