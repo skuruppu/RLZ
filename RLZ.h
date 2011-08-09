@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include <SuffixTree.h>
 #include <Array.h>
 #include "Bits.h"
@@ -40,6 +41,14 @@ class FactorWriter
         virtual void write_factor(uint64_t pos, uint64_t len);
 
     protected:
+
+        // Constants for Golomb coding
+        static const unsigned int GOLOMBDIV = 64;
+        static const unsigned int GOLOMBDIVSHORT = 8;
+
+        // 2*len+len/GOLOMBDIVSHORT+(LOG2GOLOMBDIVSHORT+1) <
+        // logrefseqlen+len/GOLOMBDIV+(LOG2GOLOMBDIV+1)
+        uint64_t SHORTFACTHRESH;
         
         // Reference sequence as a bit vector with 3bpb encoding
         // {a,c,g,t,n}
@@ -138,9 +147,11 @@ class FactorReader
         /** Read an RLZ factor.
          * @param pos Output position component of factor
          * @param len Output length component of factor
+         * @param substr Vector to store short factor if needed
          * @return Status to indicate if a factor was read successfully
          */
-        virtual bool read_factor(uint64_t *pos, uint64_t *len);
+        virtual bool read_factor(uint64_t *pos, uint64_t *len, 
+                                 std::vector<char>& substr);
 
     private:
         
@@ -153,20 +164,26 @@ class FactorReaderText : public FactorReader
 
         /** Constructor for the class.
          * @param infile Input file stream
+         * @param isshort Whether some factors will be short factors
          */
-        FactorReaderText(ifstream& infile);
+        FactorReaderText(ifstream& infile, bool isshort);
         
         /** Read an RLZ factor.
          * @param pos Output position component of factor
          * @param len Output length component of factor
+         * @param substr Vector to store short factor if needed
          * @return Status to indicate if a factor was read successfully
          */
-        bool read_factor(uint64_t *pos, uint64_t *len);
+        bool read_factor(uint64_t *pos, uint64_t *len,
+                         std::vector<char>& substr);
 
     private:
         
         // Input stream to read from
         ifstream& infile;
+
+        // Whether some factors will be short factors
+        bool isshort;
 };
 
 class FactorReaderBinary : public FactorReader
@@ -176,8 +193,10 @@ class FactorReaderBinary : public FactorReader
         /** Constructor for the class.
          * @param infile Input file stream
          * @param logrefseqlen Number of bits for encoding positions
+         * @param isshort Whether some factors will be short factors
          */
-        FactorReaderBinary(ifstream& infile, uint64_t logrefseqlen);
+        FactorReaderBinary(ifstream& infile, uint64_t logrefseqlen, 
+                           bool isshort);
 
         /** Destructor for the class. */
         ~FactorReaderBinary();
@@ -185,17 +204,25 @@ class FactorReaderBinary : public FactorReader
         /** Read an RLZ factor.
          * @param pos Output position component of factor
          * @param len Output length component of factor
+         * @param substr Vector to store short factor if needed
          * @return Status to indicate if a factor was read successfully
          */
-        bool read_factor(uint64_t *pos, uint64_t *len);
+        bool read_factor(uint64_t *pos, uint64_t *len,
+                         std::vector<char>& substr);
 
     private:
 
         // To read bits and integers
         BitReader *breader;
 
-        // To Golomb encode numbers
+        // To Golomb decode numbers
         GolombCoder *gdecoder;
+
+        // To Golomb decode short numbers
+        GolombCoder *gdecodershort;
+
+        // Whether some factors will be short factors
+        bool isshort;
 
         // Maximum number of bits to use to encode a position
         uint64_t logrefseqlen;

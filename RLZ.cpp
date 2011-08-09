@@ -10,6 +10,7 @@ const char *RLZ::NUCLALPHA = "acgnt";
 unsigned char nucl_to_int[256] = {0};
 unsigned char int_to_nucl[RLZ::NUCLALPHASIZE+1];
 unsigned char int_to_2bpb[RLZ::NUCLALPHASIZE+1];
+unsigned char bpb_to_char[RLZ::NUCLALPHASIZE+1];
 
 void initialise_nucl_converters()
 {
@@ -31,6 +32,11 @@ void initialise_nucl_converters()
     int_to_2bpb[3] = 2; // g
     int_to_2bpb[4] = -1; // n (invalid)
     int_to_2bpb[5] = 3; // t
+
+    bpb_to_char[0] = 'a';
+    bpb_to_char[1] = 'c';
+    bpb_to_char[2] = 'g';
+    bpb_to_char[3] = 't';
 }
 
 
@@ -631,26 +637,38 @@ void RLZDecompress::relative_LZ_defactorise(FactorReader& facreader,
                                             ofstream& outfile)
 {
     uint64_t pos, len, i;
+    vector<char> substr;
 
     try
     {
         // Read factors until EOF
-        while (facreader.read_factor(&pos, &len))
+        while (facreader.read_factor(&pos, &len, substr))
         {
+            // A short factor
+            if (substr.size() == len)
+            {
+                for (i=0; i<len; i++)
+                {
+                    outfile << substr.at(i);
+                }
+            }
             // Run length encoded Ns
-            if (pos == refseqlen)
+            else if (pos == refseqlen)
             {
                 for (i=0; i<len; i++)
                 {
                     outfile << 'n';
                 }
-                continue;
             }
             // Standard factor
-            for (i=pos; i<pos+len; i++)
+            else
             {
-                outfile << (char)int_to_nucl[refseq->getField(i)];
+                for (i=pos; i<pos+len; i++)
+                {
+                    outfile << (char)int_to_nucl[refseq->getField(i)];
+                }
             }
+            substr.clear();
         }
     }
     catch (exception e)
@@ -701,6 +719,7 @@ FactorWriter::FactorWriter(ofstream& outfile, char encoding,
         cerr << "Unknown encoding type.\n";
         exit(1);
     }
+    
 }
 
 void FactorWriter::write_factor(uint64_t pos, uint64_t len)
@@ -721,6 +740,13 @@ FactorWriterText::FactorWriterText(ofstream& outfile, bool isshort,
     this->refseq = refseq;
     this->refseqlen = refseqlen; 
     this->logrefseqlen = logrefseqlen;
+
+    if (isshort)
+    {
+        // 2*len+len/GOLOMBDIVSHORT+(LOG2GOLOMBDIVSHORT+1) <
+        // logrefseqlen+len/GOLOMBDIV+(LOG2GOLOMBDIV+1)
+        SHORTFACTHRESH = (64.0/135)*(logrefseqlen+3);
+    }
 }
 
 FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
@@ -728,8 +754,8 @@ FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
                                        uint64_t logrefseqlen)
 {
     bwriter = new BitWriter(outfile);
-    gcoder = new GolombCoder(*bwriter, 64);
-    gcodershort = new GolombCoder(*bwriter, 8);
+    gcoder = new GolombCoder(*bwriter, GOLOMBDIV);
+    gcodershort = new GolombCoder(*bwriter, GOLOMBDIVSHORT);
 
     this->isshort = isshort;
     this->refseq = refseq;
@@ -737,10 +763,17 @@ FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
     this->logrefseqlen = logrefseqlen;
 
     // Output the Golomb coding parameter
-    bwriter->int_to_binary(64, 8);
+    bwriter->int_to_binary(GOLOMBDIV, 8);
 
     // Ouptut the Golomb coding parameter for short ints
-    bwriter->int_to_binary(8, 8);
+    if (isshort)
+    {
+        bwriter->int_to_binary(GOLOMBDIVSHORT, 8);
+
+        // 2*len+len/GOLOMBDIVSHORT+(LOG2GOLOMBDIVSHORT+1) <
+        // logrefseqlen+len/GOLOMBDIV+(LOG2GOLOMBDIV+1)
+        SHORTFACTHRESH = (64.0/135)*(logrefseqlen+3);
+    }
 }
 
 FactorWriterBinary::~FactorWriterBinary()
@@ -749,14 +782,14 @@ FactorWriterBinary::~FactorWriterBinary()
 
     delete bwriter;
     delete gcoder;
+    delete gcodershort;
 }
 
 void FactorWriterText::write_factor(uint64_t pos, uint64_t len)
 {
     uint64_t i;
 
-    // 2*len+len/8+4 < logrefseqlen+len/64+7
-    if (isshort && pos!=refseqlen && len < (64.0/135)*(logrefseqlen+3))
+    if (isshort && pos!=refseqlen && len <= SHORTFACTHRESH)
     {
         for (i=pos; i<pos+len; i++)
         {
@@ -786,7 +819,7 @@ void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
     uint64_t i;
 
     // 2*len+len/8+4 < logrefseqlen+len/64+7
-    if (isshort && pos!=refseqlen && len < (64.0/135)*(logrefseqlen+3))
+    if (isshort && pos!=refseqlen && len <= SHORTFACTHRESH)
     {
         for (i=pos; i<pos+len; i++)
         {
@@ -834,17 +867,24 @@ FactorReader::FactorReader(ifstream& infile, uint64_t logrefseqlen)
     unsigned char encodings;
     infile >> encodings;
 
+    bool isshort = false;
+
+    // Short factor encoding enabled
+    if (encodings & ((unsigned)1<<5))
+        isshort = true;
+
     // Plain text 10000000
     if (encodings & ((unsigned)1<<7))
     {
-        facreader = new FactorReaderText(infile);
+        facreader = new FactorReaderText(infile, isshort);
         // Read the new line
         infile.get();
     }
     // Binary output
     else if (encodings & ((unsigned)1<<6))
     {
-        facreader = new FactorReaderBinary(infile, logrefseqlen);
+        facreader = new FactorReaderBinary(infile, logrefseqlen,
+                                           isshort);
     }
     else
     {
@@ -858,26 +898,43 @@ FactorReader::~FactorReader()
     delete facreader;
 }
 
-bool FactorReader::read_factor(uint64_t *pos, uint64_t *len)
+bool FactorReader::read_factor(uint64_t *pos, uint64_t *len,
+                               vector<char>& substr)
 {
-    return facreader->read_factor(pos, len);
+    return facreader->read_factor(pos, len, substr);
 }
 
-FactorReaderText::FactorReaderText(ifstream& infile) :
-    infile(infile) {}
+FactorReaderText::FactorReaderText(ifstream& infile, bool isshort) :
+    infile(infile), isshort(isshort) {}
         
-bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len)
+bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len,
+                                   vector<char>& substr)
 {
+    int c;
+
     try
     {
-        infile >> *pos >> *len;
+        // Short factor
+        if (isshort && nucl_to_int[infile.peek()] > 0)
+        {
+            while ((c = infile.get()) != ' ')
+                substr.push_back(c);
+            infile >> *len;
+        }
+        // Standard factor
+        else
+        {
+            infile >> *pos >> *len;
+        }
+        // Get rid of the newline
+        infile.get();
     }
     catch (ifstream::failure e)
     {
         // EOF detected
         if (infile.eof())
         {
-            *pos = NULL; *len = NULL;
+            *pos = NULL; *len = NULL; substr.clear();
             return false;
         }
         // Some other IO error
@@ -888,25 +945,52 @@ bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len)
 }
 
 FactorReaderBinary::FactorReaderBinary(ifstream& infile, 
-                                       uint64_t logrefseqlen)
+                                       uint64_t logrefseqlen,
+                                       bool isshort)
 {
+    uint64_t divisor;
+
     breader = new BitReader(infile);
-    uint64_t divisor = breader->binary_to_int(8);
+    divisor = breader->binary_to_int(8);
     gdecoder = new GolombCoder(*breader, (unsigned int)divisor);
 
     this->logrefseqlen = logrefseqlen;
+    this->isshort = isshort;
+
+    if (isshort)
+    {
+        divisor = breader->binary_to_int(8);
+        gdecodershort = new GolombCoder(*breader, (unsigned int)divisor);
+    }
 }
 
 FactorReaderBinary::~FactorReaderBinary()
 {
     delete breader;
     delete gdecoder;
+
+    if (isshort)
+        delete gdecodershort;
 }
 
-bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len)
+bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len,
+                                     vector<char>& substr)
 {
+    uint64_t i;
+
     try
     {
+        // Short factor
+        if (isshort && breader->read_bit() == 0)
+        {
+            *len = gdecodershort->golomb_decode();
+            for (i=0; i<*len; i++)
+            {
+                substr.push_back(bpb_to_char[breader->binary_to_int(2)]);
+            }
+            return true;
+        }
+        // Standard factor
         *pos = breader->binary_to_int(logrefseqlen);
         *len = gdecoder->golomb_decode();
     }
