@@ -917,23 +917,18 @@ void FactorWriterText::write_factor(uint64_t pos, uint64_t len,
 {
     static bool firstliss = true;
 
-    // Write the first LISS factor as a standard factor
-    if (lissfac && firstliss)
-    {
-        outfile << pos << ' ' << len << endl;
-        firstliss = false;
-        return;
-    }
-
     if (lissfac)
     {
-        // Put a + sign to indicate that it's a diff rather than a
-        // position
-        if ((int64_t)pos > 0)
-            outfile << '+';
+        // Write the first LISS factor as a standard factor
+        if (firstliss)
+        {
+            outfile << "* " << pos << ' ' << len << endl;
+            firstliss = false;
+            return;
+        }
+
         // Output the diff and the length of the factor
-        // The - sign will automatically appear if the diff is -ve
-        outfile << (int64_t)pos << ' ' << len << endl;
+        outfile << "* " << (int64_t)pos << ' ' << len << endl;
         return;
     }
 
@@ -1102,15 +1097,20 @@ FactorReader::FactorReader(ifstream& infile, uint64_t logrefseqlen)
     infile >> encodings;
 
     bool isshort = false;
+    bool isliss = false;
 
     // Short factor encoding enabled
     if (encodings & ((unsigned)1<<5))
         isshort = true;
 
+    // LISS encoding enabled
+    if (encodings & ((unsigned)1<<4))
+        isliss = true;
+
     // Plain text 10000000
     if (encodings & ((unsigned)1<<7))
     {
-        facreader = new FactorReaderText(infile, isshort);
+        facreader = new FactorReaderText(infile, isshort, isliss);
         // Read the new line
         infile.get();
     }
@@ -1118,7 +1118,7 @@ FactorReader::FactorReader(ifstream& infile, uint64_t logrefseqlen)
     else if (encodings & ((unsigned)1<<6))
     {
         facreader = new FactorReaderBinary(infile, logrefseqlen,
-                                           isshort);
+                                           isshort, isliss);
     }
     else
     {
@@ -1138,13 +1138,15 @@ bool FactorReader::read_factor(uint64_t *pos, uint64_t *len,
     return facreader->read_factor(pos, len, substr);
 }
 
-FactorReaderText::FactorReaderText(ifstream& infile, bool isshort) :
-    infile(infile), isshort(isshort) {}
+FactorReaderText::FactorReaderText(ifstream& infile, bool isshort,
+                                   bool isliss) :
+    infile(infile), isshort(isshort), isliss(isliss) {}
         
 bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len,
                                    vector<char>& substr)
 {
     int c;
+    bool firstliss = true;
 
     try
     {
@@ -1180,7 +1182,7 @@ bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len,
 
 FactorReaderBinary::FactorReaderBinary(ifstream& infile, 
                                        uint64_t logrefseqlen,
-                                       bool isshort)
+                                       bool isshort, bool isliss)
 {
     uint64_t divisor;
 
@@ -1190,6 +1192,7 @@ FactorReaderBinary::FactorReaderBinary(ifstream& infile,
 
     this->logrefseqlen = logrefseqlen;
     this->isshort = isshort;
+    this->isliss = isliss;
 
     if (isshort)
     {
