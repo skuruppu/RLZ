@@ -124,6 +124,10 @@ class FactorWriterText : public FactorWriter
         
         // Output stream to write to
         ofstream& outfile;
+        
+        // Keeps track of if the first LISS factor has been encoded or
+        // not
+        bool firstliss;
 };
 
 class FactorWriterBinary : public FactorWriter
@@ -172,6 +176,9 @@ class FactorWriterBinary : public FactorWriter
         // To Golomb encode short numbers
         GolombCoder *gcodershort;
 
+        // Keeps track of if the first LISS factor has been encoded or
+        // not
+        bool firstliss;
 };
 
 class FactorReader
@@ -233,6 +240,10 @@ class FactorReaderText : public FactorReader
 
         // LISS factor encoding
         bool isliss;
+
+        // Variables need for LISS encoding
+        bool firstliss;
+        uint64_t prevpos, cumlen;
 };
 
 class FactorReaderBinary : public FactorReader
@@ -279,6 +290,10 @@ class FactorReaderBinary : public FactorReader
 
         // Maximum number of bits to use to encode a position
         uint64_t logrefseqlen;
+
+        // Variables need for LISS encoding
+        bool firstliss;
+        uint64_t prevpos, cumlen;
 };
 
 // A base class for RLZ compression and decompression

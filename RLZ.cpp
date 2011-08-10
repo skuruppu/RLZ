@@ -878,6 +878,13 @@ FactorWriterText::FactorWriterText(ofstream& outfile, bool isshort,
         // 2*len+len/GOLOMBDIVSHORT+(LOG2GOLOMBDIVSHORT+1) <
         // logrefseqlen+len/GOLOMBDIV+(LOG2GOLOMBDIV+1)
         SHORTFACTHRESH = (64.0/135)*(logrefseqlen+3);
+    
+    }
+
+    // Initialise a flag needed to start LISS encoding
+    if (isliss)
+    {
+        firstliss = true;
     }
 }
 
@@ -914,8 +921,6 @@ void FactorWriterText::write_factor(uint64_t pos, uint64_t len)
 void FactorWriterText::write_factor(uint64_t pos, uint64_t len,
                                     bool lissfac)
 {
-    static bool firstliss = true;
-
     if (lissfac)
     {
         // Write the first LISS factor as a standard factor
@@ -966,6 +971,12 @@ FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
         // 2*len+len/GOLOMBDIVSHORT+(LOG2GOLOMBDIVSHORT+1) <
         // logrefseqlen+len/GOLOMBDIV+(LOG2GOLOMBDIV+1)
         SHORTFACTHRESH = (64.0/135)*(logrefseqlen+3);
+    }
+
+    // Initialise a flag needed to start LISS encoding
+    if (isliss)
+    {
+        firstliss = true;
     }
 }
 
@@ -1020,8 +1031,6 @@ void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
 void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len,
                                       bool lissfac)
 {
-    static bool firstliss = true;
-
     if (lissfac)
     {
         // A bit to indicate that it's an LISS factor
@@ -1139,14 +1148,20 @@ bool FactorReader::read_factor(uint64_t *pos, uint64_t *len,
 
 FactorReaderText::FactorReaderText(ifstream& infile, bool isshort,
                                    bool isliss) :
-    infile(infile), isshort(isshort), isliss(isliss) {}
+    infile(infile), isshort(isshort), isliss(isliss)
+{
+    // Initialise variables needed for LISS factor encoding
+    if (isliss)
+    {
+        firstliss = true;
+        prevpos = cumlen = 0;
+    }
+}
         
 bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len,
                                    vector<char>& substr)
 {
     int c;
-    static bool firstliss = true;
-    static uint64_t prevpos = 0, cumlen = 0;
     int64_t diff;
 
     try
@@ -1218,10 +1233,18 @@ FactorReaderBinary::FactorReaderBinary(ifstream& infile,
     this->isshort = isshort;
     this->isliss = isliss;
 
+    // Get the divisor for Golomb decoding lengths for short factors
     if (isshort)
     {
         divisor = breader->binary_to_int(8);
         gdecodershort = new GolombCoder(*breader, (unsigned int)divisor);
+    }
+
+    // Initialise variables needed for LISS factor encoding
+    if (isliss)
+    {
+        firstliss = true;
+        prevpos = cumlen = 0;
     }
 }
 
@@ -1238,9 +1261,6 @@ bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len,
                                      vector<char>& substr)
 {
     uint64_t i;
-
-    static bool firstliss = true;
-    static uint64_t prevpos = 0, cumlen = 0;
     int64_t diff;
 
     try
