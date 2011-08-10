@@ -210,8 +210,9 @@ class FactorReaderText : public FactorReader
         /** Constructor for the class.
          * @param infile Input file stream
          * @param isshort Whether some factors will be short factors
+         * @param isliss Whether LISS encode was used
          */
-        FactorReaderText(ifstream& infile, bool isshort);
+        FactorReaderText(ifstream& infile, bool isshort, bool isliss);
         
         /** Read an RLZ factor.
          * @param pos Output position component of factor
@@ -229,6 +230,9 @@ class FactorReaderText : public FactorReader
 
         // Whether some factors will be short factors
         bool isshort;
+
+        // LISS factor encoding
+        bool isliss;
 };
 
 class FactorReaderBinary : public FactorReader
@@ -239,9 +243,10 @@ class FactorReaderBinary : public FactorReader
          * @param infile Input file stream
          * @param logrefseqlen Number of bits for encoding positions
          * @param isshort Whether some factors will be short factors
+         * @param isliss Whether LISS encode was used
          */
         FactorReaderBinary(ifstream& infile, uint64_t logrefseqlen, 
-                           bool isshort);
+                           bool isshort, bool isliss);
 
         /** Destructor for the class. */
         ~FactorReaderBinary();
@@ -268,6 +273,9 @@ class FactorReaderBinary : public FactorReader
 
         // Whether some factors will be short factors
         bool isshort;
+
+        // LISS factor encoding
+        bool isliss;
 
         // Maximum number of bits to use to encode a position
         uint64_t logrefseqlen;

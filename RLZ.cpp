@@ -756,7 +756,6 @@ void FactorWriter::finalise()
 
     if (isliss)
     {
-        cout << "Here\n";
         find_LISS(positions, liss);
         i = j = 0;
         // Write standard factors until the first LISS factor
@@ -1146,12 +1145,35 @@ bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len,
                                    vector<char>& substr)
 {
     int c;
-    bool firstliss = true;
+    static bool firstliss = true;
+    static uint64_t prevpos = 0, cumlen = 0;
+    int64_t diff;
 
     try
     {
+        // LISS factor
+        if (isliss && infile.peek() == '*')
+        {
+            // Remove the * and the space after it
+            assert(infile.get() == '*');
+            assert(infile.get() == ' ');
+            // First LISS factor so it's a standard factor
+            if (firstliss)
+            {
+                infile >> *pos >> *len;
+                firstliss = false;
+            }
+            else
+            {
+                // Retrieve position diff and length
+                infile >> diff >> *len;
+                *pos = prevpos + cumlen + diff; 
+            }
+            prevpos = *pos;
+            cumlen = 0;
+        }
         // Short factor
-        if (isshort && nucl_to_int[infile.peek()] > 0)
+        else if (isshort && nucl_to_int[infile.peek()] > 0)
         {
             while ((c = infile.get()) != ' ')
                 substr.push_back(c);
@@ -1162,8 +1184,10 @@ bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len,
         {
             infile >> *pos >> *len;
         }
+        // Accumulate in between factor lengths
+        if (isliss) cumlen += *len;
         // Get rid of the newline
-        infile.get();
+        assert(infile.get() == '\n');
     }
     catch (ifstream::failure e)
     {
