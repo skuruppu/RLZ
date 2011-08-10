@@ -23,13 +23,14 @@ class FactorWriter
          * @param outfile Output file stream
          * @param encoding Type of encoding to be used
          * @param isshort Whether to short factor encode or not
+         * @param isliss Whether to LISS encode or not
          * @param refseq Reference sequence
          * @param refseqlen Length of reference sequence
          * @param logrefseqlen Number of bits for encoding positions
          */
         FactorWriter(ofstream& outfile, char encoding, bool isshort,
-                     cds_utils::Array *refseq, uint64_t refseqlen,
-                     uint64_t logrefseqlen);
+                     bool isliss, cds_utils::Array *refseq,
+                     uint64_t refseqlen, uint64_t logrefseqlen);
 
         /** Destructor for the class. */
         virtual ~FactorWriter();
@@ -39,6 +40,17 @@ class FactorWriter
          * @param len Length component of factor
          */
         virtual void write_factor(uint64_t pos, uint64_t len);
+
+        /** Output an RLZ factor.
+         * @param pos Position component of factor
+         * @param len Length component of factor
+         * @param lissfac Factor to be encoded is part of the LISS
+         */
+        virtual void write_factor(uint64_t pos, uint64_t len, 
+                                  bool lissfac) {}
+
+        /** Finalise any writing that hasn't completed yet. */
+        virtual void finalise();
 
     protected:
 
@@ -56,9 +68,25 @@ class FactorWriter
         uint64_t refseqlen;
         uint64_t logrefseqlen;
 
+        // Whether to short factor encode or not
+        bool isshort;
+
+        // LISS factor encoding
+        bool isliss;
+        std::vector<uint64_t> positions;
+        std::vector<uint64_t> lengths;
+
     private:
         
         FactorWriter *facwriter;
+
+        /** Finds longest strictly increasing subsequence (LISS).
+         *  O(n log k) algorithm, k is the length of the LISS.
+         *  @param a Input set of integers
+         *  @param b Indexes of integers in a that belong to the LISS
+         */
+        void find_LISS(std::vector<uint64_t>& a,
+                       std::vector<uint64_t>& b);
 };
 
 class FactorWriterText : public FactorWriter
@@ -68,10 +96,11 @@ class FactorWriterText : public FactorWriter
         /** Constructor for the class.
          * @param outfile Output file stream
          * @param isshort Whether to short factor encode or not
+         * @param isliss Whether to LISS encode or not
          * @param refseq Reference sequence
          * @param refseqlen Length of reference sequence
          */
-        FactorWriterText(ofstream& outfile, bool isshort,
+        FactorWriterText(ofstream& outfile, bool isshort, bool isliss,
                          cds_utils::Array *refseq, uint64_t refseqlen,
                          uint64_t logrefseqlen);
         
@@ -81,13 +110,20 @@ class FactorWriterText : public FactorWriter
          */
         void write_factor(uint64_t pos, uint64_t len);
 
+        /** Output an RLZ factor.
+         * @param pos Position component of factor
+         * @param len Length component of factor
+         * @param lissfac Factor to be encoded is part of the LISS
+         */
+        void write_factor(uint64_t pos, uint64_t len, bool lissfac);
+
+        /** Finalise any writing that hasn't completed yet. */
+        void finalise();
+
     private:
         
         // Output stream to write to
         ofstream& outfile;
-
-        // Whether to short factor encode or not
-        bool isshort;
 };
 
 class FactorWriterBinary : public FactorWriter
@@ -97,11 +133,12 @@ class FactorWriterBinary : public FactorWriter
         /** Constructor for the class.
          * @param outfile Output file stream
          * @param isshort Whether to short factor encode or not
+         * @param isliss Whether to LISS encode or not
          * @param refseq Reference sequence
          * @param refseqlen Length of reference sequence
          * @param logrefseqlen Number of bits for encoding positions
          */
-        FactorWriterBinary(ofstream& outfile, bool isshort,
+        FactorWriterBinary(ofstream& outfile, bool isshort, bool isliss,
                            cds_utils::Array *refseq, uint64_t refseqlen,
                            uint64_t logrefseqlen);
 
@@ -114,6 +151,16 @@ class FactorWriterBinary : public FactorWriter
          */
         void write_factor(uint64_t pos, uint64_t len);
 
+        /** Output an RLZ factor.
+         * @param pos Position component of factor
+         * @param len Length component of factor
+         * @param lissfac Factor to be encoded is part of the LISS
+         */
+        void write_factor(uint64_t pos, uint64_t len, bool lissfac);
+
+        /** Finalise any writing that hasn't completed yet. */
+        void finalise();
+
     private:
 
         // To write bits and integers
@@ -125,8 +172,6 @@ class FactorWriterBinary : public FactorWriter
         // To Golomb encode short numbers
         GolombCoder *gcodershort;
 
-        // Whether to short factor encode or not
-        bool isshort;
 };
 
 class FactorReader
@@ -279,9 +324,11 @@ class RLZCompress : RLZ
          * @param numfiles Number of files in the dataset
          * @param encoding Type of encoding to be used
          * @param isshort Encode shorter factors as substr,len pairs
+         * @param isliss Enable LISS factor encoding
          */
         RLZCompress(char **filenames, uint64_t numfiles, 
-                    char encoding='b', bool isshort=false);
+                    char encoding='b', bool isshort=false, 
+                    bool isliss=false);
 
         /** Temporary constructor that implements the suffix tree
          * instead of a suffix array.
@@ -310,6 +357,9 @@ class RLZCompress : RLZ
 
         // Short factor encoding
         bool isshort;
+
+        // LISS encoding
+        bool isliss;
 
         /** Conducts the relative Lempel-Ziv compression of the sequence
          * inside the infile and writes the output to outfile.

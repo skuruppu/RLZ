@@ -41,12 +41,13 @@ void initialise_nucl_converters()
 
 
 RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
-                         char encoding, bool isshort)
+                         char encoding, bool isshort, bool isliss)
 {
     this->filenames = filenames;
     this->numfiles = numfiles;
     this->encoding = encoding;
     this->isshort = isshort;
+    this->isliss = isliss;
 
     initialise_nucl_converters();
 
@@ -290,7 +291,8 @@ void RLZCompress::compress()
 
         // Intialise the factor writer
         FactorWriter *facwriter = new FactorWriter(outfile, encoding,
-                                                   isshort, this->refseq,
+                                                   isshort, isliss,
+                                                   this->refseq,
                                                    refseqlen,
                                                    logrefseqlen);
 
@@ -380,6 +382,9 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
         else
             facwriter.write_factor(sa->getField(pl), len);
     }
+
+    // Call this to indicate the end of input to the factor writer
+    facwriter.finalise();
 }
 
 void RLZCompress::relative_LZ_factorise(ifstream& infile, 
@@ -683,36 +688,44 @@ FactorWriter::FactorWriter() :
     facwriter(NULL) {}
 
 FactorWriter::FactorWriter(ofstream& outfile, char encoding,
-                           bool isshort, Array *refseq, 
+                           bool isshort, bool isliss, Array *refseq, 
                            uint64_t refseqlen, uint64_t logrefseqlen)
 {
+    unsigned char encbyte = 0;
+
+    this->isshort = isshort;
+    this->isliss = isliss;
+
     // The encoding format is tbsl---- where t=text, b=binary,
     // s=shortfac encoding, l=liss encoding
+
+    if (isshort)
+        encbyte |= (unsigned)1<<5;
+
+    if (isliss)
+        encbyte |= (unsigned)1<<4;
+
     if (encoding == 'b')
     {
-        // Output the type of encoding
-        // 01100000
-        if (isshort)
-            outfile << (unsigned char)96;
-        // 01000000
-        else
-            outfile << (unsigned char)64;
+        encbyte |= (unsigned)1<<6;
 
-        facwriter = new FactorWriterBinary(outfile, isshort, refseq,
-                                           refseqlen, logrefseqlen);
+        // Output the type of encoding
+        outfile << encbyte;
+
+        facwriter = new FactorWriterBinary(outfile, isshort, isliss,
+                                           refseq, refseqlen,
+                                           logrefseqlen);
     }
     else if (encoding == 't')
     {
-        // Output the type of encoding
-        // 10100000
-        if (isshort )
-            outfile << (unsigned char)160 << endl;
-        // 10000000
-        else
-            outfile << (unsigned char)128 << endl;
+        encbyte |= (unsigned)1<<7;
 
-        facwriter = new FactorWriterText(outfile, isshort, refseq,
-                                         refseqlen, logrefseqlen);
+        // Output the type of encoding
+        outfile << encbyte << endl;
+
+        facwriter = new FactorWriterText(outfile, isshort, isliss,
+                                         refseq, refseqlen,
+                                         logrefseqlen);
     }
     else
     {
@@ -724,7 +737,66 @@ FactorWriter::FactorWriter(ofstream& outfile, char encoding,
 
 void FactorWriter::write_factor(uint64_t pos, uint64_t len)
 {
+    // If LISS encoding then can't output factors yet so just store them
+    if (isliss)
+    {
+        positions.push_back(pos);
+        lengths.push_back(len);
+        return;
+    }
+
     facwriter->write_factor(pos, len);
+}
+
+void FactorWriter::finalise()
+{
+    vector<uint64_t> liss;
+    uint64_t i, j;
+    uint64_t prevpos, cumlen;
+
+    if (isliss)
+    {
+        cout << "Here\n";
+        find_LISS(positions, liss);
+        i = j = 0;
+        // Write standard factors until the first LISS factor
+        while (j < liss[i])
+        {
+            facwriter->write_factor(positions[j], lengths[j], false);
+            j++;
+        }
+        facwriter->write_factor(positions[j], lengths[j], true);
+        // Initialise the position and length accumulators to keep track
+        // of the last LISS factor encountered
+        prevpos = positions[j];
+        cumlen = lengths[j];
+        i++; j++;
+        while (i < liss.size())
+        {
+            // Write standard factors
+            while (j < liss[i])
+            {
+                facwriter->write_factor(positions[j], lengths[j],
+                                        false);
+                cumlen += lengths[j];
+                j++;
+            }
+            // Write LISS factor
+            facwriter->write_factor(positions[j]-(prevpos+cumlen),
+                                    lengths[j], true);
+            prevpos = positions[j];
+            cumlen = lengths[j];
+            i++; j++;
+        }
+        // Write the remaining standard factors
+        while (j<positions.size())
+        {
+            facwriter->write_factor(positions[j], lengths[j], false);
+            j++;
+        }
+    }
+
+    facwriter->finalise();
 }
 
 FactorWriter::~FactorWriter()
@@ -732,63 +804,89 @@ FactorWriter::~FactorWriter()
     delete facwriter;
 }
 
+// Finds longest strictly increasing subsequence (LISS).
+// O(n log k) algorithm, k is the length of the LISS.
+void FactorWriter::find_LISS(vector<uint64_t>& a, vector<uint64_t>& b)
+{
+    uint64_t asize = a.size();
+    vector<uint64_t> p(asize);
+    uint64_t u, v, c;
+    uint64_t i;
+   
+    i = 0;
+    // Ignore factors that represent Ns
+    while (a[i] == refseqlen)
+        i++;
+    // Add the first factor
+    b.push_back(i);
+   
+    for (; i < asize; i++) 
+    {
+        // Ignore factors that represent Ns
+        if (a[i] == refseqlen)
+            continue;
+
+        // If the last inserted index in b has a position less than the
+        // position at the current index then no need to binary search so
+        // just store the values 
+        if (a[b.back()] < a[i]) 
+        {
+            p[i] = b.back();
+            b.push_back(i);
+            continue;
+        }
+      
+        // Binary search till you find the place where the current
+        // position will fit in b
+        for (u = 0, v = b.size()-1; u < v;) 
+        {
+            c = (u + v) / 2;
+            if (a[b[c]] < a[i]) 
+                u=c+1; 
+            else 
+                v=c;
+        }
+      
+        // Found a spot to insert the current position 
+        if (a[i] < a[b[u]]) 
+        {
+            if (u > 0) 
+                p[i] = b[u-1];
+            b[u] = i;
+        }	
+    }
+
+    // Back-track to figure out which indices are part of the LISS
+    for (u = b.size(), v = b.back(); u>0; v = p[v], u--) 
+    {
+        b[u-1] = v;
+    }
+}
+
 FactorWriterText::FactorWriterText(ofstream& outfile, bool isshort, 
-                                   Array *refseq, uint64_t refseqlen,
-                                   uint64_t logrefseqlen) :
-    outfile(outfile), isshort(isshort)
+                                   bool isliss, Array *refseq, uint64_t
+                                   refseqlen, uint64_t logrefseqlen) :
+    outfile(outfile)
 {
     this->refseq = refseq;
     this->refseqlen = refseqlen; 
     this->logrefseqlen = logrefseqlen;
-
-    if (isshort)
-    {
-        // 2*len+len/GOLOMBDIVSHORT+(LOG2GOLOMBDIVSHORT+1) <
-        // logrefseqlen+len/GOLOMBDIV+(LOG2GOLOMBDIV+1)
-        SHORTFACTHRESH = (64.0/135)*(logrefseqlen+3);
-    }
-}
-
-FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
-                                       Array *refseq, uint64_t refseqlen,
-                                       uint64_t logrefseqlen)
-{
-    bwriter = new BitWriter(outfile);
-    gcoder = new GolombCoder(*bwriter, GOLOMBDIV);
-    gcodershort = new GolombCoder(*bwriter, GOLOMBDIVSHORT);
-
     this->isshort = isshort;
-    this->refseq = refseq;
-    this->refseqlen = refseqlen; 
-    this->logrefseqlen = logrefseqlen;
+    this->isliss = isliss;
 
-    // Output the Golomb coding parameter
-    bwriter->int_to_binary(GOLOMBDIV, 8);
-
-    // Ouptut the Golomb coding parameter for short ints
     if (isshort)
     {
-        bwriter->int_to_binary(GOLOMBDIVSHORT, 8);
-
         // 2*len+len/GOLOMBDIVSHORT+(LOG2GOLOMBDIVSHORT+1) <
         // logrefseqlen+len/GOLOMBDIV+(LOG2GOLOMBDIV+1)
         SHORTFACTHRESH = (64.0/135)*(logrefseqlen+3);
     }
-}
-
-FactorWriterBinary::~FactorWriterBinary()
-{
-    bwriter->flush();
-
-    delete bwriter;
-    delete gcoder;
-    delete gcodershort;
 }
 
 void FactorWriterText::write_factor(uint64_t pos, uint64_t len)
 {
     uint64_t i;
 
+    // 2*len+len/8+4 < logrefseqlen+len/64+7
     if (isshort && pos!=refseqlen && len <= SHORTFACTHRESH)
     {
         for (i=pos; i<pos+len; i++)
@@ -812,6 +910,76 @@ void FactorWriterText::write_factor(uint64_t pos, uint64_t len)
 
     // Just a standard factor
     outfile << pos << ' ' << len << endl;
+}
+
+void FactorWriterText::write_factor(uint64_t pos, uint64_t len,
+                                    bool lissfac)
+{
+    static bool firstliss = true;
+
+    // Write the first LISS factor as a standard factor
+    if (lissfac && firstliss)
+    {
+        outfile << pos << ' ' << len << endl;
+        firstliss = false;
+        return;
+    }
+
+    if (lissfac)
+    {
+        // Put a + sign to indicate that it's a diff rather than a
+        // position
+        if ((int64_t)pos > 0)
+            outfile << '+';
+        // Output the diff and the length of the factor
+        // The - sign will automatically appear if the diff is -ve
+        outfile << (int64_t)pos << ' ' << len << endl;
+        return;
+    }
+
+    // Standard factor
+    write_factor(pos, len);
+}
+
+void FactorWriterText::finalise()
+{
+
+}
+
+FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
+                                       bool isliss, Array *refseq,
+                                       uint64_t refseqlen,
+                                       uint64_t logrefseqlen)
+{
+    bwriter = new BitWriter(outfile);
+    gcoder = new GolombCoder(*bwriter, GOLOMBDIV);
+    gcodershort = new GolombCoder(*bwriter, GOLOMBDIVSHORT);
+
+    this->isshort = isshort;
+    this->isliss = isliss;
+    this->refseq = refseq;
+    this->refseqlen = refseqlen; 
+    this->logrefseqlen = logrefseqlen;
+
+    // Output the Golomb coding parameter
+    bwriter->int_to_binary(GOLOMBDIV, 8);
+
+    // Ouptut the Golomb coding parameter for short ints
+    if (isshort)
+    {
+        bwriter->int_to_binary(GOLOMBDIVSHORT, 8);
+
+        // 2*len+len/GOLOMBDIVSHORT+(LOG2GOLOMBDIVSHORT+1) <
+        // logrefseqlen+len/GOLOMBDIV+(LOG2GOLOMBDIV+1)
+        SHORTFACTHRESH = (64.0/135)*(logrefseqlen+3);
+    }
+}
+
+FactorWriterBinary::~FactorWriterBinary()
+{
+    delete bwriter;
+    delete gcoder;
+    delete gcodershort;
 }
 
 void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
@@ -853,6 +1021,72 @@ void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
     // Output factor as a standard factor
     bwriter->int_to_binary(pos, logrefseqlen);
     gcoder->golomb_encode(len);
+}
+
+void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len,
+                                      bool lissfac)
+{
+    static bool firstliss = true;
+
+    if (lissfac)
+    {
+        // A bit to indicate that it's an LISS factor
+        bwriter->write_bit(1);
+
+        // Write the first LISS factor as a standard factor
+        if (firstliss)
+        {
+            if (isshort) bwriter->write_bit(1);
+            // Output factor as a standard factor
+            bwriter->int_to_binary(pos, logrefseqlen);
+            gcoder->golomb_encode(len);
+            firstliss = false;
+            return;
+        }
+
+        // The next LISS position can be inferred from the previous LISS
+        // position and the cumulative length of factors inbetween
+        if ((int64_t)pos == 0)
+        {
+            bwriter->write_bit(0);
+            // Only need the length
+            gcoder->golomb_encode(len);
+        }
+        // The next LISS position is to the left of the inferred LISS
+        // position
+        else if ((int64_t)pos < 0)
+        {
+            // 1 bit to say position is a diff
+            bwriter->write_bit(1);
+            // 0 bit to say the diff is negative
+            bwriter->write_bit(0);
+            gcoder->golomb_encode(abs((int64_t)pos));
+            gcoder->golomb_encode(len);
+        }
+        // The next LISS position is to the right of the inferred LISS
+        // position
+        else
+        {
+            // 1 bit to say position is a diff
+            bwriter->write_bit(1);
+            // 1 bit to say the diff is positive
+            bwriter->write_bit(1);
+            gcoder->golomb_encode(pos);
+            gcoder->golomb_encode(len);
+        }
+
+        return;
+    }
+
+    // A bit to indicate that it's not encoded as an LISS factor
+    bwriter->write_bit(0);
+    // Standard factor
+    write_factor(pos, len);
+}
+
+void FactorWriterBinary::finalise()
+{
+    bwriter->flush();
 }
 
 FactorReader::FactorReader() :

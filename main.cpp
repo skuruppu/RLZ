@@ -7,12 +7,13 @@ int main(int argc, char **argv)
 {
 	char usage[] = "Usage: %s [OPTIONS] REF FILE1 FILE2 ...\n\
     -d: Decompress (all other options ignored)\n\
-	-e: Type of encoding (t: text, b: binary, l: liss) (default: b)\n\
+	-e: Type of encoding (t: text, b: binary) (default: b)\n\
+    -l: Enable LISS encoding\n\
     -s: Output short factors as substring and length pairs\n\
 	REF: Name of reference sequence\n\
 	FILE1 ...: Names of files to be compressed\n";
 	char option, encoding='b';
-    bool isdecomp = false, isshort = false;
+    bool isdecomp = false, isshort = false, isliss = false;
 
 	if (argc < 3)
 	{
@@ -20,7 +21,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-    while ((option = getopt(argc, argv, "e:ds")) != EOF)
+    while ((option = getopt(argc, argv, "e:dls")) != EOF)
     {
         switch (option)
         {
@@ -39,6 +40,9 @@ int main(int argc, char **argv)
             case 'd':
                 isdecomp = true;
                 break;
+            case 'l':
+                isliss = true;
+                break;
             default:
                 cerr << usage;
                 exit(1);
@@ -47,7 +51,8 @@ int main(int argc, char **argv)
 
     if (!isdecomp)
     {
-        RLZCompress rlz(argv+optind, argc-optind, encoding, isshort);
+        RLZCompress rlz(argv+optind, argc-optind, encoding, isshort,
+                        isliss);
 
         rlz.compress();
     }
