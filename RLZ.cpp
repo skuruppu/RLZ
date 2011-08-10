@@ -1239,21 +1239,60 @@ bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len,
 {
     uint64_t i;
 
+    static bool firstliss = true;
+    static uint64_t prevpos = 0, cumlen = 0;
+    int64_t diff;
+
     try
     {
+        // LISS factor
+        if (isliss && breader->read_bit() == 1)
+        {
+            // First LISS factor so it's a standard factor
+            if (firstliss)
+            {
+                // Get rid of the short factor encoding bit
+                if (isshort) assert(breader->read_bit() == 1);
+                *pos = breader->binary_to_int(logrefseqlen);
+                *len = gdecoder->golomb_decode();
+                firstliss = false;
+            }
+            else
+            {
+                // No diff between predicted and actual position
+                if (breader->read_bit() == 0)
+                {
+                    diff = 0;
+                }
+                else
+                {
+                    // Retrieve position diff
+                    diff = (breader->read_bit() == 0) ? -1 : 1;
+                    diff *= gdecoder->golomb_decode();
+                }
+                *pos = prevpos + cumlen + diff;
+                *len = gdecoder->golomb_decode();
+            }
+            prevpos = *pos;
+            cumlen = 0;
+        }
         // Short factor
-        if (isshort && breader->read_bit() == 0)
+        else if (isshort && breader->read_bit() == 0)
         {
             *len = gdecodershort->golomb_decode();
             for (i=0; i<*len; i++)
             {
                 substr.push_back(bpb_to_char[breader->binary_to_int(2)]);
             }
-            return true;
         }
-        // Standard factor
-        *pos = breader->binary_to_int(logrefseqlen);
-        *len = gdecoder->golomb_decode();
+        else
+        {
+            // Standard factor
+            *pos = breader->binary_to_int(logrefseqlen);
+            *len = gdecoder->golomb_decode();
+        }
+        // Accumulate in between factor lengths
+        if (isliss) cumlen += *len;
     }
     // EOF reached
     catch (BitsEOFException& eofexp)
