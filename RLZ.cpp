@@ -48,6 +48,7 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->encoding = encoding;
     this->isshort = isshort;
     this->isliss = isliss;
+    this->st = NULL;
 
     initialise_nucl_converters();
 
@@ -134,6 +135,7 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
 {
     this->filenames = filenames;
     this->numfiles = numfiles;
+    this->sa = NULL;
 
     initialise_nucl_converters();
 
@@ -157,11 +159,11 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
         refseqlen--;
 
         // Read the reference sequence
-        refseq = new Array(refseqlen, ((unsigned)1<<BITSPERBASE)-1);
+        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
         store_sequence(sequence, filenames[0], refseq, refseqlen);
 
         // Construct suffix tree
-        SuffixTreeY *sty = new SuffixTreeY(sequence, refseqlen+1, PHI,
+        SuffixTreeY *sty = new SuffixTreeY(sequence, refseqlen+1, DAC,
                                            CN_NPR, 32);
 
         // Write out suffix tree to disk for later use
@@ -193,7 +195,7 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
         infile.seekg(0, ios::beg);
 
         // Read the reference sequence
-        refseq = new Array(refseqlen, ((unsigned)1<<BITSPERBASE)-1);
+        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
         store_sequence(infile, filenames[0], refseq, refseqlen);
         infile.close();
     }
@@ -206,7 +208,8 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
 RLZCompress::~RLZCompress()
 {
     delete refseq;
-    delete sa;
+    if (sa != NULL) delete sa;
+    if (st != NULL) delete st;
 }
 
 void RLZ::store_sequence(char *sequence, char *filename,
