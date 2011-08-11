@@ -181,6 +181,52 @@ class FactorWriterBinary : public FactorWriter
         bool firstliss;
 };
 
+class FactorWriterIndex : public FactorWriter
+{
+    public:
+
+        /** Constructor for the class.
+         * @param outfile Output file stream
+         * @param refseq Reference sequence
+         * @param refseqlen Length of reference sequence
+         * @param logrefseqlen Number of bits for encoding positions
+         */
+        FactorWriterIndex(ofstream& outfile, cds_utils::Array *refseq,
+                           uint64_t refseqlen, uint64_t logrefseqlen);
+
+        /** Destructor for the class. */
+        ~FactorWriterIndex();
+
+        /** Output an RLZ factor.
+         * @param pos Position component of factor
+         * @param len Length component of factor
+         */
+        void write_factor(uint64_t pos, uint64_t len);
+
+        /** Finalise any writing that hasn't completed yet. */
+        void finalise();
+
+    private:
+
+        // Output stream to write to
+        ofstream& outfile;
+
+        // To write bits and integers
+        BitWriter *bwriter;
+
+        // Factor start positions
+        std::vector<bool> facstarts;
+
+        // Cumulative sequence lengths
+        std::vector<uint64_t> cumseqlens;
+
+        // Total number of factors
+        uint64_t numfacs;
+
+        // Accumulate the length of a sequence
+        uint64_t cumlen;
+};
+
 class FactorReader
 {
     public:

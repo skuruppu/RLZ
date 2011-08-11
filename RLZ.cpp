@@ -1325,3 +1325,46 @@ bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len,
     }
     return true;
 }
+
+FactorWriterIndex::FactorWriterIndex(ofstream& outfile, 
+                                     cds_utils::Array *refseq, 
+                                     uint64_t refseqlen, 
+                                     uint64_t logrefseqlen) :
+    outfile(outfile)
+{
+    this->refseq = refseq;
+    this->refseqlen = refseqlen;
+    this->logrefseqlen = logrefseqlen;
+
+    bwriter = new BitWriter(outfile);
+
+    numfacs = 0;
+    cumlen = 0;
+}
+
+FactorWriterIndex::~FactorWriterIndex()
+{
+    delete bwriter;
+}
+
+void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
+{
+    uint64_t i;
+
+    facstarts.push_back(true);
+    for (i=1; i<len; i++)
+    {
+        facstarts.push_back(false);
+    }
+
+    bwriter->int_to_binary(pos, logrefseqlen);
+
+    numfacs++;
+}
+
+void FactorWriterIndex::finalise()
+{
+    cumseqlens.push_back(cumlen);
+
+    cumlen = 0;
+}
