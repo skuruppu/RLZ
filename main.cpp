@@ -65,6 +65,7 @@ int main(int argc, char **argv)
     {
         RLZCompress rlz(argv+optind, argc-optind, encoding, isshort,
                         isliss);
+        //RLZCompress rlz(argv+optind, argc-optind, true);
 
         rlz.compress();
     }

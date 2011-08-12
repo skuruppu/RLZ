@@ -300,6 +300,7 @@ void RLZCompress::compress()
                                                    logrefseqlen);
 
         relative_LZ_factorise(infile, filenames[i], *facwriter);
+        //relative_LZ_factorise(infile, filenames[i], outfile, true);
 
         delete facwriter;
 
@@ -405,11 +406,10 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
     runofns = false;
     while (1)
     {
-        c = infile.get();
-        if (infile.eof())
-        {
-            break;
-        }
+        // EOF reached
+        if ((c = infile.get()) == EOF) break;
+
+        // Invalid symbol in file
         if (nucl_to_int[c] == 0)
         {
             cerr << "Invalid symbol " << c << " at position " << i;
@@ -417,19 +417,22 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
             exit(1);
         }
 
+        // Part of a run of Ns
         if (c == 'n')
         {
+            // A new run of Ns so print earlier factor and go back to
+            // the root of the suffix tree
             if (!runofns && len > 0)
             {
                 cout << st->Locate(pl,pl) << ' ' << len << endl;
-                st->Root(&pl, &pr);
-                len = 0; 
+                st->Root(&pl, &pr); len = 0; 
             }
             runofns = true;
             len++;
         }
         else
         {
+            // A run of Ns just ended so print the factor
             if (runofns)
             {
                 cout << refseqlen << ' ' << len << endl;
@@ -437,36 +440,54 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
                 len = 0;
             }
 
-            st->Child(pl, pr, (unsigned char)c, &cl, &cr);
-            cout << (char)c << ' ' << cl << ' ' << cr << endl;
-            
-            if (len == 12)
+            // The previous suffix tree branch taken covers more than
+            // one symbol
+            if (len < st->SDepth(pl, pr))
             {
-                st->FChild(pl, pr, &cl, &cr);
-                cout << cl << ' ' << cr << endl;
-                break;
-            }
-
-            if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
-            {
-                for (i=pl; i<=pr; i++)
+                // Couldn't extend current match so print factor
+                if ((unsigned char)c != st->Letter(pl, pr, len+1))
                 {
-                    cout << st->Locate(i,i) << endl;
+                    cout << st->Locate(pl,pl) << ' ' << len << endl;
+                    infile.unget(); i--;
+                    // Reset the search range to the entire suffix array
+                    st->Root(&pl, &pr); len = 0;
                 }
-                //cout << st->Locate(pl,pl) << ' ' << len << endl;
-                st->Root(&pl, &pr);
-                len = 0;
-                break;
+                else
+                {
+                    len++;
+                }
             }
+            // Need to traverse to a new child
             else
             {
-                len++;
-                pl = cl;
-                pr = cr;
+                st->Child(pl, pr, (unsigned char)c, &cl, &cr);
+            
+                // Couldn't extend current match so print factor
+                if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
+                {
+                    cout << st->Locate(pl,pl) << ' ' << len << endl;
+                    infile.unget(); i--;
+                    // Reset the search range to the entire suffix array
+                    st->Root(&pl, &pr); len = 0;
+                }
+                // Set the suffix array boundaries to narrow the search
+                // for the next symbol
+                else
+                {
+                    pl = cl; pr = cr; len++;
+                }
             }
         }
-
         i++;
+    }
+
+    // Print last factor
+    if (len > 0)
+    {
+        if (runofns)
+            cout << refseqlen << ' ' << len << endl;
+        else
+            cout << st->Locate(pl,pl) << ' ' << len << endl;
     }
 }
 
