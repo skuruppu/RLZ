@@ -300,9 +300,8 @@ void RLZCompress::compress()
                                                    logrefseqlen);
 
         relative_LZ_factorise(infile, filenames[i], *facwriter);
-        //relative_LZ_factorise(infile, filenames[i], outfile, true);
-
         delete facwriter;
+        //relative_LZ_factorise(infile, filenames[i], outfile, true);
 
         infile.close();
         outfile.close();
@@ -396,9 +395,10 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
                                         ofstream& outfile, bool state)
 {
     int c;
-    uint64_t i, len;
+    uint64_t i, j, len, depth=0, saval=0;
     size_t pl, pr, cl, cr;
     bool runofns;
+    vector<unsigned char> substr;
 
     i = 0;
     st->Root(&pl, &pr);
@@ -425,7 +425,7 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
             if (!runofns && len > 0)
             {
                 cout << st->Locate(pl,pl) << ' ' << len << endl;
-                st->Root(&pl, &pr); len = 0; 
+                st->Root(&pl, &pr); len = 0; depth = 0; saval = 0;
             }
             runofns = true;
             len++;
@@ -442,19 +442,19 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
 
             // The previous suffix tree branch taken covers more than
             // one symbol
-            if (len < st->SDepth(pl, pr))
+            if (len < depth)
             {
                 // Couldn't extend current match so print factor
-                if ((unsigned char)c != st->Letter(pl, pr, len+1))
+                if ((unsigned char)c != int_to_nucl[refseq->getField(saval+len)])
                 {
-                    cout << st->Locate(pl,pl) << ' ' << len << endl;
+                    cout << saval << ' ' << len << endl;
                     infile.unget(); i--;
                     // Reset the search range to the entire suffix array
-                    st->Root(&pl, &pr); len = 0;
+                    st->Root(&pl, &pr); len = 0; depth = 0; saval = 0;
                 }
                 else
                 {
-                    len++;
+                    len++; j++;
                 }
             }
             // Need to traverse to a new child
@@ -463,17 +463,20 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
                 st->Child(pl, pr, (unsigned char)c, &cl, &cr);
             
                 // Couldn't extend current match so print factor
-                if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
+                if (cl == (uint64_t)(-1))
                 {
                     cout << st->Locate(pl,pl) << ' ' << len << endl;
                     infile.unget(); i--;
                     // Reset the search range to the entire suffix array
-                    st->Root(&pl, &pr); len = 0;
+                    st->Root(&pl, &pr); len = 0; depth = 0; saval = 0;
                 }
                 // Set the suffix array boundaries to narrow the search
                 // for the next symbol
                 else
                 {
+                    depth = st->SDepth(cl, cr);
+                    if (len+1 < depth)
+                        saval = st->Locate(cl,cl);
                     pl = cl; pr = cr; len++;
                 }
             }

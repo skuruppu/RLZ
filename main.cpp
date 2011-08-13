@@ -63,8 +63,7 @@ int main(int argc, char **argv)
     }
     else if (!isdecomp)
     {
-        RLZCompress rlz(argv+optind, argc-optind, encoding, isshort,
-                        isliss);
+        RLZCompress rlz(argv+optind, argc-optind, encoding, isshort, isliss);
         //RLZCompress rlz(argv+optind, argc-optind, true);
 
         rlz.compress();
