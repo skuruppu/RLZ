@@ -1,4 +1,5 @@
 #include <divsufsort64.h>
+#include <BitSequenceSDArray.h>
 #include "RLZ.h"
 
 using namespace std;
@@ -272,6 +273,22 @@ void RLZCompress::compress()
     char outfilename[1024];
     ifstream infile;
     ofstream outfile;
+    FactorWriter *facwriter = NULL;
+
+    if (encoding == 'i')
+    {
+        // Open output file to write compressed sequence to
+        sprintf(outfilename, "%s.idx", filenames[0]);
+        outfile.open(outfilename, ofstream::out);
+        if (!outfile.good())
+        {
+            cerr << "Couldn't open file " << outfilename << ".\n";
+            exit(1);
+        }
+
+        facwriter = new FactorWriterIndex(outfile, this->refseq,
+                                          refseqlen, logrefseqlen);
+    }
 
     for (i=1; i<numfiles; i++)
     {
@@ -283,27 +300,39 @@ void RLZCompress::compress()
             exit(1);
         }
 
-        // Open output file to write compressed sequence to
-        sprintf(outfilename, "%s.fac", filenames[i]);
-        outfile.open(outfilename, ofstream::out);
-        if (!outfile.good())
+        // Intialise the factor writer
+        if (encoding != 'i')
         {
-            cerr << "Couldn't open file " << outfilename << ".\n";
-            exit(1);
+
+            // Open output file to write compressed sequence to
+            sprintf(outfilename, "%s.fac", filenames[i]);
+            outfile.open(outfilename, ofstream::out);
+            if (!outfile.good())
+            {
+                cerr << "Couldn't open file " << outfilename << ".\n";
+                exit(1);
+            }
+
+            facwriter = new FactorWriter(outfile, encoding, isshort,
+                                         isliss, this->refseq,
+                                         refseqlen, logrefseqlen);
         }
 
-        // Intialise the factor writer
-        FactorWriter *facwriter = new FactorWriter(outfile, encoding,
-                                                   isshort, isliss,
-                                                   this->refseq,
-                                                   refseqlen,
-                                                   logrefseqlen);
-
         relative_LZ_factorise(infile, filenames[i], *facwriter);
-        delete facwriter;
         //relative_LZ_factorise(infile, filenames[i], outfile, true);
 
+        if (encoding != 'i')
+        {
+            delete facwriter;
+            outfile.close();
+        }
+
         infile.close();
+    }
+
+    if (encoding == 'i')
+    {
+        delete facwriter;
         outfile.close();
     }
 }
@@ -1364,31 +1393,76 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
 
     numfacs = 0;
     cumlen = 0;
+
+    // Fill the first two slots with zeros
+    cumseqlens.push_back(0);
+    cumseqlens.push_back(0);
+
+    posarraylen = 1000;
+    positions = new unsigned int[posarraylen];
 }
 
 FactorWriterIndex::~FactorWriterIndex()
 {
+    // Write the total number of factors
+    bwriter->int_to_binary(numfacs, sizeof(uint64_t)*8);
+    // Write the total number of sequences + 1
+    bwriter->int_to_binary(cumseqlens.size(), sizeof(uint64_t)*8);
+
+    // Write the reference sequence
+    refseq->save(outfile);
+    cout << "refseq: " << refseq->getSize() << endl;
+
+    // Create the compressed bit vector and write it
+    BitSequenceSDArray facstartssdarray = BitSequenceSDArray(facstarts);
+    facstartssdarray.save(outfile);
+    cout << "facstarts: " << facstartssdarray.getSize() << endl;
+
+    uint64_t i;
+    // Write out the cumulative sequence lengths
+    for (i=0; i<cumseqlens.size(); i++)
+        outfile.write((const char*)&cumseqlens.at(i), sizeof(uint64_t));
+    cout << "cumseqlens: " << cumseqlens.size()*sizeof(uint64_t) << endl;
+
+    // Write out the positions
+    outfile.write((const char*)&positions, (numfacs*logrefseqlen/8)+1);
+    cout << "positions: " << (numfacs*logrefseqlen/8)+1 << endl;
+
     delete bwriter;
+    delete positions;
 }
 
 void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
 {
     uint64_t i;
 
+    // Set a bit at the factor start position and set the rest of the
+    // bits to zero
     facstarts.push_back(true);
     for (i=1; i<len; i++)
-    {
         facstarts.push_back(false);
+
+    // Check if there's enough memory to store the position and if not
+    // allocate more memory
+    if (numfacs*logrefseqlen/(sizeof(unsigned int)*8)+1 >= posarraylen)
+    {
+        unsigned int *newarray = new unsigned int[posarraylen*2];
+        memcpy(newarray, positions, posarraylen);
+        delete [] positions;
+        positions = newarray;
+        posarraylen *= 2;
     }
+    set_field_64(positions, logrefseqlen, numfacs, pos);
 
-    bwriter->int_to_binary(pos, logrefseqlen);
-
+    cumlen += len;
     numfacs++;
 }
 
 void FactorWriterIndex::finalise()
 {
-    cumseqlens.push_back(cumlen);
+    // Store the cumulative length of this sequence
+    cumseqlens.push_back(cumseqlens.back()+cumlen);
 
+    // Reset the cumulative length in preparation for the next sequence
     cumlen = 0;
 }

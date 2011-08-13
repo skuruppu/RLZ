@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-    while ((option = getopt(argc, argv, "e:dls")) != EOF)
+    while ((option = getopt(argc, argv, "de:ils")) != EOF)
     {
         switch (option)
         {

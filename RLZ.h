@@ -220,6 +220,10 @@ class FactorWriterIndex : public FactorWriter
         // Cumulative sequence lengths
         std::vector<uint64_t> cumseqlens;
 
+        // List of factor positions
+        unsigned int *positions;
+        size_t posarraylen;
+
         // Total number of factors
         uint64_t numfacs;
 
