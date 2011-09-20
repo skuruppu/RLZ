@@ -5,7 +5,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-	char usage[] = "Usage: %s [OPTIONS] REF FILE1 FILE2 ...\n\
+	char usage[] = "Usage: rlz [OPTIONS] REF FILE1 FILE2 ...\n\
     -d: Decompress (all other options ignored)\n\
     -e: Type of encoding (t: text, b: binary) (default: b)\n\
     -i: Output an index for random access (all other options ignored)\n\
