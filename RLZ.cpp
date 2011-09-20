@@ -1418,15 +1418,22 @@ FactorWriterIndex::~FactorWriterIndex()
     facstartssdarray.save(outfile);
     cout << "facstarts: " << facstartssdarray.getSize() << endl;
 
-    uint64_t i;
+    // Write out the positions
+    Array posarray(numfacs, refseqlen);
+    for (uint64_t i=0; i<numfacs; i++)
+    {
+        posarray.setField(i, get_field_64(positions, logrefseqlen, i));
+    }
+    posarray.save(outfile);
+    cout << "positions: " << posarray.getSize() << endl;
+
     // Write out the cumulative sequence lengths
-    for (i=0; i<cumseqlens.size(); i++)
+    for (uint64_t i=0; i<cumseqlens.size(); i++)
         outfile.write((const char*)&cumseqlens.at(i), sizeof(uint64_t));
     cout << "cumseqlens: " << cumseqlens.size()*sizeof(uint64_t) << endl;
 
-    // Write out the positions
-    outfile.write((const char*)&positions, (numfacs*logrefseqlen/8)+1);
-    cout << "positions: " << (numfacs*logrefseqlen/8)+1 << endl;
+    //outfile.write((const char*)&positions, (numfacs*logrefseqlen/8)+1);
+    //cout << "positions: " << (numfacs*logrefseqlen/8)+1 << endl;
 
     delete bwriter;
     delete positions;
@@ -1447,7 +1454,7 @@ void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
     if (numfacs*logrefseqlen/(sizeof(unsigned int)*8)+1 >= posarraylen)
     {
         unsigned int *newarray = new unsigned int[posarraylen*2];
-        memcpy(newarray, positions, posarraylen);
+        memcpy(newarray, positions, posarraylen*sizeof(unsigned int));
         delete [] positions;
         positions = newarray;
         posarraylen *= 2;
