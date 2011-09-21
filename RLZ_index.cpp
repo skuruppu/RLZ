@@ -1,4 +1,4 @@
-/* RLZ display()
+/* RLZ index 
  * Copyright (C) 2011 Shanika Kuruppu
  *
  * This program is free software: you can redistribute it and/or modify
@@ -39,6 +39,7 @@
 
 #include "RLZ_index.h"
 #include "Bits.h"
+#include "alphabet.h"
 
 #define BPB 3
 #define INVALID 0xffffffff
@@ -61,6 +62,8 @@ int main (int argc, char **argv)
         cerr << usage;
         exit(1);
     }
+
+    initialise_nucl_converters();
 
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
@@ -119,153 +122,6 @@ RLZ_index::~RLZ_index()
     delete [] cumseqlens;
 }
 
-/*
-void RLZ_index::read_reference_sequence(char *filename)
-{
-    char *refseqfilename = new char[1024];
-    ifstream refseqfile;
-    uint64_t i;
-    int c, val;
-    
-    // Initialize the reference sequence reading 
-    strcpy(refseqfilename, filename);
-    refseqfile.open(refseqfilename, ifstream::in);
-    if (!refseqfile.good())
-    {
-       cerr << "Error opening file of base sequence " << filename << endl;
-       exit(1);
-    }
-
-    // Get the reference sequence and its length
-    refseqfile.seekg(0,ios::end);
-    refseqlen = (uint64_t)refseqfile.tellg();
-    int j = floor(log2(refseqlen));
-    logrefseqlen = ((unsigned)(1<<j) != refseqlen) ? j+1 : j;
-
-    // Reset file pointer to the start of the file 
-    refseqfile.seekg(0,ios::beg);
-
-    // Initialise the reference sequence storage 
-	refseq = new Array(refseqlen, 7);
-
-    // Read each char and encode to 3bpb 
-    for (i=0; i<refseqlen; i++)
-    {
-        c = refseqfile.get();
-        switch (c)
-        {
-            case 'a':
-                val = 0;
-                break;
-            case 'c':
-                val = 1;
-                break;
-            case 'g':
-                val = 2;
-                break;
-            case 'n':
-                val = 3;
-                break;
-            case 't':
-                val = 4;
-                break;
-            default:
-                cerr << "RLZ_index: Unsupported character in reference sequence.\n";
-                exit(1);
-                break;
-        }
-		refseq->setField(i, val);
-    }
-
-    delete [] refseqfilename;
-
-    return;
-}
-
-void RLZ_index::read_compressed_factors()
-{
-    uint64_t i, totseqlen, cumlen;
-    vector<uint64_t> poss;
-    vector<uint64_t> lens;
-    char *facfilename = new char[1024];
-    ifstream facfile;
-
-    // Allocate memory to store the cumseqlens 
-    cumseqlens = new uint64_t[numseqs+2];
-    cumseqlens[0] = 0;
-
-    // Read the factors into memory for each factor file 
-    totseqlen = 0;
-    numfacs = 0;
-    for (i=1; i<=numseqs; i++)
-    {
-        strcpy(facfilename, filenames[i]);
-        facfile.open(facfilename, ifstream::in);
-        if (!facfile.good())
-        {
-            cerr << "Error opening file " << filenames[i] << "." << endl;
-            exit(1);
-        }
-        
-        cumseqlens[i] = totseqlen;
-        decompress_factors(facfile, poss, lens, totseqlen);
-        facfile.close();
-    }
-    cumseqlens[numseqs+1] = totseqlen; // The end of all the sequences
-
-    // Create a compact array to store the positions
-    positions = new Array(poss);
-    
-    // Store the facstarts as a compressed bit vector
-    BitString lengtharray(totseqlen);
-    cumlen = 0;
-    for (i=0; i<numfacs; i++)
-    {
-        lengtharray.setBit(cumlen);
-        cumlen += lens.at(i);
-    }
-    facstarts = new BitSequenceSDArray(lengtharray);
-
-    delete [] facfilename;
-}
-
-void RLZ_index::decompress_factors(ifstream &facfile, vector<uint64_t> &poss, 
-                           vector<uint64_t> &lens, uint64_t &totseqlen)
-{
-    uint64_t pos, len, cumlen;
-
-    BitReader breader = BitReader(facfile);
-    GolombCoder gdecoder = GolombCoder(breader, 64);
-
-    cumlen = 0;
-    while (1)
-    {
-        // Decode standard factor
-        try
-        {
-            pos = breader.binary_to_int(logrefseqlen);
-            len = gdecoder.golomb_decode();
-            cumfaclen += len;
-        }
-        catch (BitsEOFException& eofexp)
-        {
-            break;
-        }
-        catch (BitsUnexpectedException& unexp)
-        {
-            cerr << unexp.what();
-            exit(1);
-        }
-
-        poss.push_back(pos);
-        lens.push_back(len);
-        totseqlen += len;
-        numfacs ++;
-    }
-
-}
-*/
-
 void RLZ_index::decode()
 {
     uint64_t i, j, maxfacnum, len;
@@ -313,7 +169,7 @@ void RLZ_index::decode()
 
 void RLZ_index::display()
 {
-    uint64_t i, seq, start, end, v;
+    uint64_t i, seq, start, end;
     vector <uint> substring;
     long totaltime = 0, totalchars = 0, totalqueries = 0; 
 
@@ -334,29 +190,7 @@ void RLZ_index::display()
         
         for (i=0; i<substring.size(); i++)
         {
-            v = substring.at(i);
-            switch(v)
-            {
-                case 1:
-                    cout << 'a';
-                    break;
-                case 2:
-                    cout << 'c';
-                    break;
-                case 3:
-                    cout << 'g';
-                    break;
-                case 4:
-                    cout << 'n';
-                    break;
-                case 5:
-                    cout << 't';
-                    break;
-                default:
-                    cerr << "RLZ_index: Unknown nucleotide bit representation." << v << "\n";
-                    exit(1);
-                    break;
-            }
+            cout << int_to_nucl[substring.at(i)];
         }
         cout << '\n';
         substring.clear();
@@ -409,7 +243,7 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
         s = p+cumseqlens[seq]+start-b;
         for (i=s; i<(p+l) && i<(s+end-start); i++)
         {
-            substring.push_back(3);
+            substring.push_back(nucl_to_int['n']);
         }
     }
     else
@@ -444,7 +278,7 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
                 s = p+cumseqlens[seq]+start-b;
                 for (i=s; i<(p+l) && i<(s+end-start); i++)
                 {
-                    substring.push_back(3);
+                    substring.push_back(nucl_to_int['n']);
                 }
             }
             else

@@ -349,11 +349,6 @@ class FactorReaderBinary : public FactorReader
 // A base class for RLZ compression and decompression
 class RLZ
 {
-    public:
-        static const uint64_t BITSPERBASE = 3;
-        static const char *NUCLALPHA;
-        static const uint64_t NUCLALPHASIZE = 5;
-
     protected:
         
         // Reference sequence as a bit vector with 3bpb encoding
