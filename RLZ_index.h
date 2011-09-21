@@ -28,6 +28,9 @@
 
 #include <Array.h>
 #include <BitSequenceSDArray.h>
+#include <BitSequence.h>
+#include <Mapper.h>
+#include <Sequence.h>
 
 class RLZ_index
 {
@@ -40,6 +43,9 @@ class RLZ_index
 
         /* Display function */
         void display();
+
+        /* Search function */
+        void search();
 
         /* Factor file decode function */
         void decode();
@@ -70,7 +76,8 @@ class RLZ_index
         cds_utils::Array *refseq;
 
         /* Factor positions as a bit vector using logn bits per position */
-        cds_utils::Array *positions;
+        //cds_utils::Array *positions;
+        cds_static::WaveletTreeNoptrs *positions;
 
         /* Factor facstarts in a rank-select data structure */
         cds_static::BitSequenceSDArray *facstarts;
@@ -100,4 +107,14 @@ class RLZ_index
          * the query */
         long display(uint64_t seq, uint64_t start, uint64_t end,
                      std::vector<uint> &substring);
+
+        /*-------------------------------------------------------------------*/
+        /* Locate data structures                                            */
+        /*-------------------------------------------------------------------*/
+
+        // Suffix array of the reference sequence
+        cds_utils::Array *sa;
+
+        void sa_binary_search(cds_utils::Array &pattern, uint64_t *cl,
+                              uint64_t *cr);
 };

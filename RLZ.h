@@ -192,7 +192,8 @@ class FactorWriterIndex : public FactorWriter
          * @param logrefseqlen Number of bits for encoding positions
          */
         FactorWriterIndex(ofstream& outfile, cds_utils::Array *refseq,
-                           uint64_t refseqlen, uint64_t logrefseqlen);
+                          cds_utils::Array *sa, uint64_t refseqlen,
+                          uint64_t logrefseqlen);
 
         /** Destructor for the class. */
         ~FactorWriterIndex();
@@ -229,6 +230,9 @@ class FactorWriterIndex : public FactorWriter
 
         // Accumulate the length of a sequence
         uint64_t cumlen;
+
+        // Suffix array of the reference sequence
+        cds_utils::Array *sa;
 };
 
 class FactorReader

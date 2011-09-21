@@ -68,7 +68,8 @@ int main (int argc, char **argv)
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
     rlzidx->size();
-    rlzidx->display();
+    //rlzidx->display();
+    rlzidx->search();
 
     return 0; 
 }
@@ -101,7 +102,11 @@ RLZ_index::RLZ_index(char *filename) :
     facstarts = BitSequenceSDArray::load(idxfile);
 
     // Create a compact array to store the positions
-    positions = new Array(idxfile);
+    //positions = new Array(idxfile);
+    positions = WaveletTreeNoptrs::load(idxfile);
+
+    // Read in the suffix array
+    sa = new Array(idxfile);
 
     // Read the cumulative sequence lengths
     cumseqlens = new uint64_t[numseqs];
@@ -155,7 +160,8 @@ void RLZ_index::decode()
             else
                 len = facstarts->select1(j+2) - facstarts->select1(j+1);
             // Standard factor decoding
-            outfile << positions->getField(j) << ' ';
+            //outfile << positions->getField(j) << ' ';
+            outfile << positions->access(j) << ' ';
             // Print the length
             outfile << len << endl;
         }
@@ -236,7 +242,8 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
         l = facstarts->select1(rk+1) - b;
 
     // Just a standard factor
-    p = positions->getField(rk-1);
+    //p = positions->getField(rk-1);
+    p = positions->access(rk-1);
     // A substring of Ns
     if (p == refseqlen)
     {
@@ -270,7 +277,8 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
                 l = facstarts->select1(rk+1) - b;
 
             // Just a standard factor
-            p = positions->getField(rk-1);
+            //p = positions->getField(rk-1);
+            p = positions->access(rk-1);
 
             // A substring of Ns
             if (p == refseqlen)
@@ -301,6 +309,131 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
     return (msec2 - msec1);
 }
 
+void RLZ_index::search()
+{
+    uint64_t lb, rb, ptnlen;
+    char *pattern = new char[100];
+
+    cin.getline(pattern, 100);
+    ptnlen = strlen(pattern);
+
+    for (uint64_t i=1; i<ptnlen; i++)
+    {
+        Array intpattern(ptnlen-i, NUCLALPHASIZE);
+        for (uint64_t j=i; j<ptnlen; j++)
+            intpattern.setField(j-i, 
+            nucl_to_int[(unsigned int)pattern[j]]);
+
+        sa_binary_search(intpattern, &lb, &rb);
+
+        cout << pattern+i << ' ' << lb << ' ' << rb << endl;
+    }
+}
+
+void RLZ_index::sa_binary_search(Array &pattern, uint64_t *cl,
+                                 uint64_t *cr)
+{
+    uint64_t low, high, mid, pl, pr; 
+    int midval, midvalleft, midvalright, c;
+
+    pl = 0; pr = refseqlen;
+
+    uint64_t length = pattern.getLength();
+    for (uint64_t i=0; i<length; i++)
+    {
+        c = pattern.getField(i);
+        low = pl; high = pr;
+
+        // Binary search left
+        while (low <= high)
+        {
+            mid = (low + high) >> 1;
+
+            midval = refseq->getField(sa->getField(mid)+i);
+            // Move left boundary to the middle
+            if (midval < c)
+                low = mid + 1;
+            // Move right boundary to the middle
+            else if (midval > c)
+                high = mid - 1;
+            else
+            {
+                // Mid is at the left boundary
+                if(mid == pl)
+                {
+                    *cl = mid;
+                    break;
+                }
+                midvalleft = refseq->getField(sa->getField(mid-1)+i);
+                // Discard mid and values to the right of mid
+                if(midvalleft == midval)
+                    high = mid - 1;
+                // Left-most occurrence found
+                else
+                {
+                    *cl = mid;
+                    break;
+                }
+            }
+        }
+
+        // Key not found so return not found symbols
+        if (low > high)
+        {
+            *cl = (uint64_t)(-1);
+            *cr = (uint64_t)(-1);
+            return;
+        }
+
+        // Binary search right
+        low = *cl; high = pr;
+        while (low <= high)
+        {
+            mid = (low + high) >> 1;
+
+
+            midval = refseq->getField(sa->getField(mid)+i);
+            // Move left bounary to the middle
+            if (midval < c)
+                low = mid + 1;
+            // Move right boundary to the middle
+            else if (midval > c)
+                high = mid - 1;
+            else
+            { 
+                // Rightmost occurrence of key found
+                if(mid == pr)
+                {
+                    *cr = mid;
+                    break;
+                }
+                midvalright = refseq->getField(sa->getField(mid+1)+i);
+                // Discard mid and the ones to the left of mid
+                if(midvalright == midval)
+                    low = mid + 1; 
+                // Rightmost occurrence of key found
+                else 
+                {
+                    *cr = mid;
+                    break;
+                }
+            }
+        }
+
+        // Key not found so return not found symbols
+        if (low > high)
+        {
+            *cl = (uint64_t)(-1);
+            *cr = (uint64_t)(-1);
+            return;
+        }
+
+        pl = *cl;
+        pr = *cr;
+    }
+
+    return;
+}
 int RLZ_index::size()
 {
     unsigned int totalsize = 0, size;

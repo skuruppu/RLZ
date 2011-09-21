@@ -3,6 +3,10 @@
 #include "RLZ.h"
 #include "alphabet.h"
 
+#include <BitSequence.h>
+#include <Mapper.h>
+#include <Sequence.h>
+
 using namespace std;
 using namespace cds_utils;
 using namespace cds_static;
@@ -253,7 +257,8 @@ void RLZCompress::compress()
         }
 
         facwriter = new FactorWriterIndex(outfile, this->refseq,
-                                          refseqlen, logrefseqlen);
+                                          this->sa, refseqlen,
+                                          logrefseqlen);
     }
 
     for (i=1; i<numfiles; i++)
@@ -1347,11 +1352,13 @@ bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len,
 
 FactorWriterIndex::FactorWriterIndex(ofstream& outfile, 
                                      cds_utils::Array *refseq, 
+                                     cds_utils::Array *sa, 
                                      uint64_t refseqlen, 
                                      uint64_t logrefseqlen) :
     outfile(outfile)
 {
     this->refseq = refseq;
+    this->sa = sa;
     this->refseqlen = refseqlen;
     this->logrefseqlen = logrefseqlen;
 
@@ -1390,8 +1397,20 @@ FactorWriterIndex::~FactorWriterIndex()
     {
         posarray.setField(i, get_field_64(positions, logrefseqlen, i));
     }
-    posarray.save(outfile);
-    cout << "positions: " << posarray.getSize() << endl;
+    //posarray.save(outfile);
+    //cout << "positions: " << posarray.getSize() << endl;
+
+    Mapper * mapper = new MapperCont(posarray, BitSequenceBuilderRG(20));
+    mapper->use();
+    WaveletTreeNoptrs wt(posarray, new BitSequenceBuilderRRR(32), mapper);
+    mapper->unuse();
+
+    wt.save(outfile);
+    cout << "positions: " << wt.getSize() << endl;
+
+    // Write out the suffix array
+    sa->save(outfile);
+    cout << "sa: " << sa->getSize() << endl;
 
     // Write out the cumulative sequence lengths
     for (uint64_t i=0; i<cumseqlens.size(); i++)
