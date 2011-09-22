@@ -1397,9 +1397,10 @@ FactorWriterIndex::~FactorWriterIndex()
     {
         posarray.setField(i, get_field_64(positions, logrefseqlen, i));
     }
-    //posarray.save(outfile);
-    //cout << "positions: " << posarray.getSize() << endl;
+    posarray.save(outfile);
+    cout << "positions: " << posarray.getSize() << endl;
 
+    /*
     Mapper * mapper = new MapperCont(posarray, BitSequenceBuilderRG(20));
     mapper->use();
     WaveletTreeNoptrs wt(posarray, new BitSequenceBuilderRRR(32), mapper);
@@ -1407,6 +1408,7 @@ FactorWriterIndex::~FactorWriterIndex()
 
     wt.save(outfile);
     cout << "positions: " << wt.getSize() << endl;
+    */
 
     // Write out the suffix array
     sa->save(outfile);
@@ -1419,7 +1421,7 @@ FactorWriterIndex::~FactorWriterIndex()
 
     //outfile.write((const char*)&positions, (numfacs*logrefseqlen/8)+1);
     //cout << "positions: " << (numfacs*logrefseqlen/8)+1 << endl;
-
+    
     delete bwriter;
     delete positions;
 }
@@ -1458,3 +1460,5 @@ void FactorWriterIndex::finalise()
     // Reset the cumulative length in preparation for the next sequence
     cumlen = 0;
 }
+
+

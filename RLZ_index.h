@@ -76,8 +76,8 @@ class RLZ_index
         cds_utils::Array *refseq;
 
         /* Factor positions as a bit vector using logn bits per position */
-        //cds_utils::Array *positions;
-        cds_static::WaveletTreeNoptrs *positions;
+        cds_utils::Array *positions;
+        //cds_static::WaveletTreeNoptrs *positions;
 
         /* Factor facstarts in a rank-select data structure */
         cds_static::BitSequenceSDArray *facstarts;
