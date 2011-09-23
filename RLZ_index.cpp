@@ -647,16 +647,40 @@ int RLZ_index::size()
     // Contents of facstarts data structure
     size += (facstarts->getSize());
     cerr << "facstarts: " << (unsigned int)facstarts->getSize() << " bytes\n";
+    // Contents of cumseqlens
+    size += numseqs*sizeof(uint64_t);
+    cerr << "cumseqlens: " << numseqs*sizeof(uint64_t) << " bytes\n";
     // Size of the pointers
     size += (sizeof(cumseqlens)+sizeof(facstarts));
     // Size of the numseqs and numfacs variables
     size += (sizeof(numseqs)+sizeof(numfacs));
     totalsize += size;
 
+    cerr << "-----\n";
     cerr << "Factors: " << size << " bytes\n";
     cerr << endl;
 
+    size = 0;
+    // Contents of suffix array
+    size += (unsigned int)sa->getSize();
+    cerr << "suffix array: " << (unsigned int)sa->getSize() << " bytes\n";
+    // Contents of nested level lists
+    size += ((unsigned int)nll->getSize() +
+             (numlevels+1)*sizeof(uint32_t));
+    cerr << "nested level lists: "
+         << (unsigned int)nll->getSize() + 
+            (numlevels+1)*sizeof(uint32_t)
+         << " bytes\n";
+    // Size of the sa and nll variables
+    size += (sizeof(sa)+sizeof(nll)+sizeof(levelidx)+sizeof(numlevels));
+    totalsize += size;
+
+    cerr << "-----\n";
+    cerr << "Search: " << size << " bytes\n";
+    cerr << endl;
+
     cerr << "Total: " << totalsize << " bytes\n";
+    cerr << endl;
 
     return totalsize;
 }
