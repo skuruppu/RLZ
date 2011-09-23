@@ -115,6 +115,11 @@ class RLZ_index
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
 
+        // Nested level lists of the sorted factors
+        cds_utils::Array *nll;
+        uint32_t *levelidx;
+        uint32_t numlevels;
+
         void sa_binary_search(cds_utils::Array &pattern, uint64_t *cl,
                               uint64_t *cr);
 };

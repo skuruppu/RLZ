@@ -233,6 +233,14 @@ class FactorWriterIndex : public FactorWriter
 
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
+
+        // Nested level lists of the sorted factors
+        cds_utils::Array *nll;
+        uint32_t *levelidx;
+        uint32_t numlevels;
+
+        void construct_nested_level_list(cds_static::BitSequenceSDArray&
+                                         facstartssdarray);
 };
 
 class FactorReader

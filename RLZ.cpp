@@ -1350,6 +1350,45 @@ bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len,
     return true;
 }
 
+// Class that supports sorting of factors according to their start
+// and end positions.
+class SortClass
+{
+private:
+    uint64_t cumseqlen;
+    BitSequenceSDArray& facstarts;
+    uint64_t numfacs;
+public:
+    SortClass(uint64_t cumseqlen, BitSequenceSDArray& facstarts,
+              uint64_t numfacs) : cumseqlen(cumseqlen),
+              facstarts(facstarts), numfacs(numfacs) {}
+    bool operator() (const uint32_t i, const uint32_t j)
+    {
+        return sort_function(i, j);
+    }
+
+    // Factor sorting function
+    bool sort_function(const uint32_t i, const uint32_t j)
+    {
+        uint32_t len1, len2;
+
+        // Get the lengths of the two factors 
+        if (i+1 == numfacs)
+            len1 = cumseqlen - facstarts.select1(i+1);
+        else
+            len1 = facstarts.select1(i+2) - facstarts.select1(i+1);
+
+        if (j+1 == numfacs)
+            len2 = cumseqlen - facstarts.select1(j+1);
+        else
+            len2 = facstarts.select1(j+2) - facstarts.select1(j+1);
+
+        // If positions are equal then order it on decreasing length
+        return (len1 > len2);
+    }
+
+};
+
 FactorWriterIndex::FactorWriterIndex(ofstream& outfile, 
                                      cds_utils::Array *refseq, 
                                      cds_utils::Array *sa, 
@@ -1387,9 +1426,9 @@ FactorWriterIndex::~FactorWriterIndex()
     cout << "refseq: " << refseq->getSize() << endl;
 
     // Create the compressed bit vector and write it
-    BitSequenceSDArray facstartssdarray = BitSequenceSDArray(facstarts);
-    facstartssdarray.save(outfile);
-    cout << "facstarts: " << facstartssdarray.getSize() << endl;
+    BitSequenceSDArray compfacstarts = BitSequenceSDArray(facstarts);
+    compfacstarts.save(outfile);
+    cout << "facstarts: " << compfacstarts.getSize() << endl;
 
     // Write out the positions
     Array posarray(numfacs, refseqlen);
@@ -1418,6 +1457,11 @@ FactorWriterIndex::~FactorWriterIndex()
     for (uint64_t i=0; i<cumseqlens.size(); i++)
         outfile.write((const char*)&cumseqlens.at(i), sizeof(uint64_t));
     cout << "cumseqlens: " << cumseqlens.size()*sizeof(uint64_t) << endl;
+
+    construct_nested_level_list(compfacstarts);
+    nll->save(outfile);
+    outfile.write((char*)&numlevels, sizeof(uint32_t));
+    outfile.write((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
 
     //outfile.write((const char*)&positions, (numfacs*logrefseqlen/8)+1);
     //cout << "positions: " << (numfacs*logrefseqlen/8)+1 << endl;
@@ -1462,3 +1506,152 @@ void FactorWriterIndex::finalise()
 }
 
 
+void FactorWriterIndex::construct_nested_level_list
+     (cds_static::BitSequenceSDArray& compfacstarts)
+{
+    vector<uint32_t> *posindices = new vector<uint32_t>[refseqlen];
+    vector< vector<uint32_t> > nestedlevels;
+    uint64_t pos, pos1, pos2, len1, len2, idx, cumlen, i, j, k;
+
+    // Count the number of factors that have position i as the starting
+    // position 
+    for (i=0; i<numfacs; i++)
+    {
+        pos = get_field_64(positions, logrefseqlen, i); 
+        // Only count positions that are not part of run length encoded
+        // Ns 
+        if (pos < refseqlen)
+        {
+            posindices[pos].push_back(i);
+        }
+    }
+
+    vector<uint32_t> sortedpositions;
+    // The object that has the sorting function
+    SortClass sortfunc(cumseqlens.back(), compfacstarts, numfacs);
+    // Sort the factors that belong to each position and put it in a
+    // temporary vector
+    for (i=0; i<refseqlen; i++)
+    {
+        if (posindices[i].size() > 0)
+        {
+            sort(posindices[i].begin(), posindices[i].end(), sortfunc);
+            for (j=0; j<posindices[i].size(); j++)
+            {
+                sortedpositions.push_back(posindices[i][j]);
+            }
+            posindices[i].clear();
+        }
+    }
+    delete [] posindices;
+
+    // Create an empty vector for the first level
+    nestedlevels.push_back(vector<uint32_t>());
+    // Add the first factor onto the vector
+    nestedlevels.back().push_back(sortedpositions.at(0));
+    // Store the pos and len of the first factor
+    pos1 = get_field_64(positions, logrefseqlen, sortedpositions.at(0));
+    if (sortedpositions.at(0)+1 == numfacs)
+        len1 = cumseqlens.back() -
+               compfacstarts.select1(sortedpositions.at(0)+1);
+    else
+        len1 = compfacstarts.select1(sortedpositions.at(0)+2) - 
+               compfacstarts.select1(sortedpositions.at(0)+1);
+    i = 1;
+    // Go through all factors and put them in the appropriate level
+    // depending on how they are ordered
+    while (i < sortedpositions.size())
+    {
+        pos2 = get_field_64(positions, logrefseqlen, sortedpositions.at(i));
+        if (sortedpositions.at(i)+1 == numfacs)
+            len2 = cumseqlens.back() - 
+                   compfacstarts.select1(sortedpositions.at(i)+1);
+        else
+            len2 = compfacstarts.select1(sortedpositions.at(i)+2) - 
+                   compfacstarts.select1(sortedpositions.at(i)+1);
+        // Current factor is not within the last factor that was
+        // inserted at level 0
+        if (pos1 <= pos2 && (pos1+len1) <= (pos2+len2))
+        {
+            nestedlevels.at(0).push_back(sortedpositions.at(i));
+            pos1 = pos2;
+            len1 = len2;
+        }
+        // Current factor is within the last factor inserted at level 0
+        else
+        {
+            j = 1;
+            // Keep going up the levels until the current factor is not
+            // within the last factor inserted into that level
+            while (1)
+            {
+                // Not enough levels so make a new level
+                if (nestedlevels.size() == j)
+                {
+                    nestedlevels.push_back(vector<uint32_t>());
+                    nestedlevels.back().push_back(sortedpositions.at(i));
+                    break;
+                }
+                else
+                {
+                    idx = nestedlevels.at(j).back();
+                    pos1 = get_field_64(positions, logrefseqlen, idx);
+                    if (idx+1 == numfacs)
+                        len1 = cumseqlens.back() -
+                               compfacstarts.select1(idx+1);
+                    else
+                        len1 = compfacstarts.select1(idx+2) - 
+                               compfacstarts.select1(idx+1);
+                    // Current factor is not contained by previous
+                    // factor in the level so insert current factor into
+                    // the level
+                    if (pos1 <= pos2 && (pos1+len1) <= (pos2+len2))
+                    {
+                        nestedlevels.at(j).push_back(sortedpositions.at(i));
+                        break;
+                    }
+                    // Try the next level
+                    j++;
+                }
+            }
+            // Make the previous factor be the last factor inserted into
+            // level 0
+            idx = nestedlevels.at(0).back();
+            pos1 = get_field_64(positions, logrefseqlen, idx);
+            if (idx+1 == numfacs)
+                len1 = cumseqlens.back() -
+                       compfacstarts.select1(idx+1);
+            else
+                len1 = compfacstarts.select1(idx+2) - 
+                       compfacstarts.select1(idx+1);
+        }
+        i++;
+    }
+
+    // Allocate memory for storing the indices of the positions for each
+    // nested level 
+    // Calculate the log of the reference sequence length
+    nll = new Array(sortedpositions.size(), numfacs-1);
+    levelidx = new uint32_t[nestedlevels.size()+1];
+    numlevels = nestedlevels.size();
+
+    k = 0;
+    cumlen = 0;
+    // Store the position indices and the index into the start of a
+    // level
+    for (i=0; i<numlevels; i++)
+    {
+        levelidx[i] = cumlen;
+        cumlen += nestedlevels[i].size();
+        for (j=0; j<nestedlevels[i].size(); j++,k++)
+        {
+            nll->setField(k, nestedlevels[i][j]);
+        }
+        nestedlevels[i].clear();
+    }
+    // Have one more than the length of the reference sequence such that
+    // levelidx[j+1] - levelidx[j] = number of factors that are in that
+    // level
+    levelidx[i] = cumlen;
+
+}

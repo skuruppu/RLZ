@@ -110,13 +110,22 @@ RLZ_index::RLZ_index(char *filename) :
 
     // Read the cumulative sequence lengths
     cumseqlens = new uint64_t[numseqs];
+    //idxfile.read((char*)&cumseqlens, numseqs*sizeof(uint64_t));
     for (uint64_t i=0; i<numseqs; i++)
         idxfile.read((char*)&cumseqlens[i], sizeof(uint64_t));
+
+    // Read the nested level list and level index
+    nll = new Array(idxfile);
+    idxfile.read((char*)&numlevels, sizeof(uint32_t));
+    levelidx = new uint32_t[numlevels+1];
+    idxfile.read((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
 
     // Calculate the log of the reference sequence length
     refseqlen = refseq->getLength()-1; // length includes null byte
     uint64_t i = floor(log2(refseqlen));
     logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
+
+    idxfile.close();
 }
 
 RLZ_index::~RLZ_index()
