@@ -122,4 +122,7 @@ class RLZ_index
 
         void sa_binary_search(cds_utils::Array &pattern, uint64_t *cl,
                               uint64_t *cr);
+
+        void facs_binary_search(uint64_t start, uint64_t end, 
+                                uint32_t *lb, uint32_t *rb);
 };
