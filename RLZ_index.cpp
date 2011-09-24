@@ -320,8 +320,9 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
 
 void RLZ_index::search()
 {
-    uint64_t lb, rb, ptnlen, i, j, k, pos, len, occurrences;
+    uint64_t lb, rb, ptnlen, i, j, k, l, pos, len, occurrences;
     char *pattern = new char[100];
+    char *pattern1 = new char[100];
     uint32_t poslb, posrb, posidx;
 
     cin.getline(pattern, 100);
@@ -367,19 +368,65 @@ void RLZ_index::search()
 
     cout << pattern << " : " << occurrences << endl;
 
-    /*
-    for (uint64_t i=1; i<ptnlen; i++)
+    for (i=1; i<=ptnlen/2; i++)
     {
-        Array intpattern(ptnlen-i, NUCLALPHASIZE);
-        for (uint64_t j=i; j<ptnlen; j++)
-            intpattern.setField(j-i, 
+        Array intpattern1(ptnlen-i, NUCLALPHASIZE);
+        for (j=i; j<ptnlen; j++)
+        {
+            pattern1[j-i] = pattern[j];
+            intpattern1.setField(j-i, 
             nucl_to_int[(unsigned int)pattern[j]]);
+        }
+        pattern1[j-i] = '\0';
 
-        sa_binary_search(intpattern, &lb, &rb);
+        sa_binary_search(intpattern1, &lb, &rb);
 
-        cout << pattern+i << ' ' << lb << ' ' << rb << endl;
+        for (l=lb; l<=rb; l++)
+        {
+            pos = sa->getField(l);
+
+            for (j=0; j<numlevels; j++)
+            {
+                poslb = levelidx[j];
+                posrb = levelidx[j+1] - 1;
+
+                factor_start_binary_search(pos, &poslb, &posrb);
+                if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
+                    continue;
+                cout << pattern1 << ' ' << pos << " : " << posrb-poslb+1 << endl;
+            }
+        }
     }
-    */
+
+    for (; i<ptnlen; i++)
+    {
+        Array intpattern1(i, NUCLALPHASIZE);
+        for (j=0; j<i; j++)
+        {
+            pattern1[j] = pattern[j];
+            intpattern1.setField(j, 
+            nucl_to_int[(unsigned int)pattern[j]]);
+        }
+        pattern1[j] = '\0';
+
+        sa_binary_search(intpattern1, &lb, &rb);
+
+        for (l=lb; l<=rb; l++)
+        {
+            pos = sa->getField(l);
+
+            for (j=0; j<numlevels; j++)
+            {
+                poslb = levelidx[j];
+                posrb = levelidx[j+1] - 1;
+
+                factor_end_binary_search(pos, &poslb, &posrb);
+                if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
+                    continue;
+                cout << pattern1 << ' ' << pos << " : " << posrb-poslb+1 << endl;
+            }
+        }
+    }
 }
 
 void RLZ_index::sa_binary_search(Array &pattern, uint64_t *cl,
@@ -555,6 +602,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
     }
 
     // Binary search right
+    low = *lb; high = *rb;
     while (low <= high)
     {
         // Get the middle index 
@@ -577,15 +625,14 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
         // The middle factor contains curridx 
         else
         { 
-            // It's the left most so return mid 
-            if(mid == high)
+            // It's the right most so return mid 
+            if(mid == *rb)
             {
                 *rb = mid;
                 break;
             }
 
-            // Get the nucleotide at the left of the middle suffix +
-            // offset 
+            // Get the factor at the right of the middle
             posidx = nll->getField(mid+1);
             pos = positions->getField(posidx);
             if (posidx+1 == numfacs)
@@ -596,6 +643,250 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
             // mid + 1 factor is greater than the current position so we've
             // reached the right most boundary 
             if (start < pos)
+            {
+                *rb = mid;
+                break;
+            }
+            // Move the left boundary to the right of the middle factor 
+            // since it matches 
+            else
+                low = mid+1;
+        } 
+    }
+
+    // Key not found 
+    if (low > high)
+    {
+        *lb = (uint32_t)-1;
+        *rb = (uint32_t)-1;
+        return;
+    }
+}
+
+void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
+                                           uint32_t *rb)
+{
+    uint32_t low, high, posidx, mid;
+    uint64_t pos;
+
+    // Binary search left
+    low = *lb; high = *rb;
+    while (low <= high)
+    {
+        // Get the middle index 
+        mid = (low + high) >> 1;
+
+        // Get the factor at the middle index 
+        posidx = nll->getField(mid);
+        pos = positions->getField(posidx);
+
+        // The factor is to the right of the current middle 
+        if (start > pos)
+            low = mid+1;
+        // The factor is to the left of the current middle 
+        else if (start < pos)
+            high = mid-1;
+        // The middle factor contains start 
+        else
+        { 
+            // It's the left most so return mid 
+            if(mid == *lb)
+            {
+                *lb = mid;
+                break;
+            }
+
+            // Get the nucleotide at the left of the middle suffix +
+            // offset 
+            posidx = nll->getField(mid-1);
+            pos = positions->getField(posidx);
+
+            // mid - 1 factor is less than the current position so we've
+            // reached the left most boundary 
+            if (start > pos)
+            {
+                *lb = mid;
+                break;
+            }
+            // Move the right boundary to the left of the middle factor 
+            // since it matches 
+            else
+                high = mid-1;
+        } 
+    }
+
+    // Key not found 
+    if (low > high)
+    {
+        *lb = (uint32_t)-1;
+        *rb = (uint32_t)-1;
+        return;
+    }
+
+    // Binary search right
+    low = *lb; high = *rb;
+    while (low <= high)
+    {
+        // Get the middle index 
+        mid = (low + high) >> 1;
+
+        // Get the factor at the middle index 
+        posidx = nll->getField(mid);
+        pos = positions->getField(posidx);
+
+        // The factor is to the right of the current middle 
+        if (start > pos)
+            low = mid+1;
+        // The factor is to the left of the current middle 
+        else if (start < pos)
+            high = mid-1;
+        // The middle factor contains start 
+        else
+        { 
+            // It's the right most so return mid 
+            if(mid == *rb)
+            {
+                *rb = mid;
+                break;
+            }
+
+            // Get the factor at the right of the middle
+            posidx = nll->getField(mid+1);
+            pos = positions->getField(posidx);
+
+            // mid + 1 factor is greater than the current position so we've
+            // reached the right most boundary 
+            if (start < pos)
+            {
+                *rb = mid;
+                break;
+            }
+            // Move the left boundary to the right of the middle factor 
+            // since it matches 
+            else
+                low = mid+1;
+        } 
+    }
+
+    // Key not found 
+    if (low > high)
+    {
+        *lb = (uint32_t)-1;
+        *rb = (uint32_t)-1;
+        return;
+    }
+}
+
+void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
+                                           uint32_t *rb)
+{
+    uint32_t low, high, posidx, mid;
+    uint64_t pos, len;
+
+    // Binary search left
+    low = *lb; high = *rb;
+    while (low <= high)
+    {
+        // Get the middle index 
+        mid = (low + high) >> 1;
+
+        // Get the factor at the middle index 
+        posidx = nll->getField(mid);
+        pos = positions->getField(posidx);
+        if (posidx+1 == numfacs)
+            len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
+        else
+            len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+
+        // The factor is to the right of the current middle 
+        if (end > pos+len)
+            low = mid+1;
+        // The factor is to the left of the current middle 
+        else if (end < pos+len)
+            high = mid-1;
+        // The middle factor contains end 
+        else
+        { 
+            // It's the left most so return mid 
+            if(mid == *lb)
+            {
+                *lb = mid;
+                break;
+            }
+
+            // Get the nucleotide at the left of the middle suffix +
+            // offset 
+            posidx = nll->getField(mid-1);
+            pos = positions->getField(posidx);
+            if (posidx+1 == numfacs)
+                len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
+            else
+                len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+
+            // mid - 1 factor is less than the current position so we've
+            // reached the left most boundary 
+            if (end > pos+len)
+            {
+                *lb = mid;
+                break;
+            }
+            // Move the right boundary to the left of the middle factor 
+            // since it matches 
+            else
+                high = mid-1;
+        } 
+    }
+
+    // Key not found 
+    if (low > high)
+    {
+        *lb = (uint32_t)-1;
+        *rb = (uint32_t)-1;
+        return;
+    }
+
+    // Binary search right
+    low = *lb; high = *rb;
+    while (low <= high)
+    {
+        // Get the middle index 
+        mid = (low + high) >> 1;
+
+        // Get the factor at the middle index 
+        posidx = nll->getField(mid);
+        pos = positions->getField(posidx);
+        if (posidx+1 == numfacs)
+            len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
+        else
+            len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+
+        // The factor is to the right of the current middle 
+        if (end > pos+len)
+            low = mid+1;
+        // The factor is to the left of the current middle 
+        else if (end < pos+len)
+            high = mid-1;
+        // The middle factor contains end 
+        else
+        { 
+            // It's the right most so return mid 
+            if(mid == *rb)
+            {
+                *rb = mid;
+                break;
+            }
+
+            // Get the factor at the right of the middle
+            posidx = nll->getField(mid+1);
+            pos = positions->getField(posidx);
+            if (posidx+1 == numfacs)
+                len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
+            else
+                len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+
+            // mid + 1 factor is greater than the current position so we've
+            // reached the right most boundary 
+            if (end < pos+len)
             {
                 *rb = mid;
                 break;

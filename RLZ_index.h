@@ -125,4 +125,10 @@ class RLZ_index
 
         void facs_binary_search(uint64_t start, uint64_t end, 
                                 uint32_t *lb, uint32_t *rb);
+
+        void factor_start_binary_search(uint64_t start, uint32_t *lb,
+                                        uint32_t *rb);
+
+        void factor_end_binary_search(uint64_t end, uint32_t *lb,
+                                      uint32_t *rb);
 };
