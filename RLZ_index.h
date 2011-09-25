@@ -108,6 +108,8 @@ class RLZ_index
         long display(uint64_t seq, uint64_t start, uint64_t end,
                      std::vector<uint> &substring);
 
+        long display(uint64_t start, uint64_t end, vector <uint> &substring);
+
         /*-------------------------------------------------------------------*/
         /* Locate data structures                                            */
         /*-------------------------------------------------------------------*/
@@ -131,4 +133,10 @@ class RLZ_index
 
         void factor_end_binary_search(uint64_t end, uint32_t *lb,
                                       uint32_t *rb);
+
+        inline uint64_t factor_length(uint32_t posidx);
+
+        inline bool compare_substr_to_refseq(cds_utils::Array& substr, 
+                                             uint64_t start, 
+                                             uint64_t len);
 };

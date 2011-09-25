@@ -222,7 +222,7 @@ void RLZ_index::display()
 
 long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint> &substring)
 {
-    uint64_t i=0, rk, p, l, b, s;
+    uint64_t i=0;
     long msec1, msec2;
     timeval tv;
 
@@ -243,7 +243,20 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
         return (msec2 - msec1);
     }
 
-    rk = facstarts->rank1(cumseqlens[seq]+start);
+    return display(cumseqlens[seq]+start, cumseqlens[seq]+end, substring);
+}
+
+long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
+{
+    uint64_t i=0, rk, p, l, b, s;
+    long msec1, msec2;
+    timeval tv;
+
+    // Start timer 
+    gettimeofday(&tv, NULL);
+    msec1 = tv.tv_sec*1000*1000 + tv.tv_usec;
+
+    rk = facstarts->rank1(start);
     b = facstarts->select1(rk);
     if (rk == numfacs)
         l = cumseqlens[numseqs-1] - b;
@@ -256,7 +269,7 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
     // A substring of Ns
     if (p == refseqlen)
     {
-        s = p+cumseqlens[seq]+start-b;
+        s = p+start-b;
         for (i=s; i<(p+l) && i<(s+end-start); i++)
         {
             substring.push_back(nucl_to_int['n']);
@@ -264,7 +277,7 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
     }
     else
     {
-        s = p+cumseqlens[seq]+start-b;
+        s = p+start-b;
         for (i=s; i<(p+l) && i<(s+end-start) && i<refseqlen; i++)
         {
             substring.push_back(refseq->getField(i));
@@ -275,7 +288,7 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
     if (i == p+l)
     {
         // Get the chars from subsequent factors  
-        start = b - cumseqlens[seq] + l;
+        start = b + l;
         while (start < end)
         {
             rk ++;
@@ -292,7 +305,7 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
             // A substring of Ns
             if (p == refseqlen)
             {
-                s = p+cumseqlens[seq]+start-b;
+                s = p+start-b;
                 for (i=s; i<(p+l) && i<(s+end-start); i++)
                 {
                     substring.push_back(nucl_to_int['n']);
@@ -300,14 +313,14 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
             }
             else
             {
-                s = p+cumseqlens[seq]+start-b;
+                s = p+start-b;
                 for (i=s; i<(p+l) && i<(s+end-start) && i<refseqlen; i++)
                 {
                     substring.push_back(refseq->getField(i));
                 }
             }
 
-            start = b - cumseqlens[seq] + l;
+            start = b + l;
         }
     }
 
@@ -320,113 +333,183 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
 
 void RLZ_index::search()
 {
-    uint64_t lb, rb, ptnlen, i, j, k, l, pos, len, occurrences;
+    uint64_t lb, rb, ptnlen, pfxlen, suflen, pos, occurrences;
+    uint64_t i, j, k, l;
     char *pattern = new char[100];
-    char *pattern1 = new char[100];
     uint32_t poslb, posrb, posidx;
+    uint64_t prevpos, prevlen, nextpos, nextlen;
+    vector <uint> substr;
 
     cin.getline(pattern, 100);
     ptnlen = strlen(pattern);
 
+    // Convert the pattern to use 3bpb
     Array intpattern(ptnlen, NUCLALPHASIZE);
     for (i=0; i<ptnlen; i++)
-        intpattern.setField(i, 
-        nucl_to_int[(unsigned int)pattern[i]]);
-
-    sa_binary_search(intpattern, &lb, &rb);
+        intpattern.setField(i, nucl_to_int[(int)pattern[i]]);
 
     occurrences = 0;
-    for (i=lb; i<=rb; i++)
+    // Search for patterns occurring within factors
+    // First get the positions at which the pattern occurs in the
+    // reference sequence
+    sa_binary_search(intpattern, &lb, &rb);
+    if (lb != (uint64_t)-1 && rb != (uint64_t)-1)
     {
-        pos = sa->getField(i);
+        // Add the reference sequence occurrences to the number of
+        // occurrences
+        occurrences += (rb - lb + 1);
 
-        for (j=0; j<numlevels; j++)
+        // For each position of occurrence in the 
+        for (i=lb; i<=rb; i++)
         {
-            poslb = levelidx[j];
-            posrb = levelidx[j+1] - 1;
-
-            facs_binary_search(pos, pos+ptnlen, &poslb, &posrb);
-
-            if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
-                continue;
-
-            for (k=poslb; k<=posrb; k++)
+            // Look for factors that contain this interval in all levels
+            // of the nll
+            pos = sa->getField(i);
+            for (j=0; j<numlevels; j++)
             {
-                posidx = nll->getField(k);
-                pos = positions->getField(posidx);
-                if (posidx+1 == numfacs)
-                    len = cumseqlens[numseqs] - 
-                          facstarts->select1(posidx+1);
-                else
-                    len = facstarts->select1(posidx+2) - 
-                          facstarts->select1(posidx+1);
-                occurrences ++;
-            }
+                poslb = levelidx[j]; posrb = levelidx[j+1] - 1;
+                facs_binary_search(pos, pos+ptnlen, &poslb, &posrb);
+                if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
+                    continue;
 
+                occurrences += (posrb - poslb + 1);
+            }
+        }
+    }
+
+    // Split the pattern into two and binary search for factors starting
+    // with the suffix then look for the complete occurrences
+    for (i=1; i<=ptnlen/2; i++)
+    {
+        pfxlen = i;
+        suflen = ptnlen-i;
+
+        // Copy the 3bpb version of the pattern suffix
+        Array intsufptn(suflen, NUCLALPHASIZE);
+        for (j=i; j<ptnlen; j++)
+            intsufptn.setField(j-i, nucl_to_int[(int)pattern[j]]);
+
+        // Copy the 3bpb version of the pattern prefix
+        Array intpfxptn(pfxlen, NUCLALPHASIZE);
+        for (j=0; j<pfxlen; j++)
+            intpfxptn.setField(j, nucl_to_int[(int)pattern[j]]);
+
+        // Search for the positions in the reference sequence at which
+        // the current suffix occurs
+        sa_binary_search(intsufptn, &lb, &rb);
+
+        // The suffix doesn't occur in the reference sequence
+        if (lb == (uint64_t)-1 || rb == (uint64_t)-1)
+            continue;
+
+        // Search for pairs of factors where the first factor ends with
+        // the prefix and the second factor starts with the suffix
+        for (l=lb; l<=rb; l++)
+        {
+            pos = sa->getField(l);
+            for (j=0; j<numlevels; j++)
+            {
+                poslb = levelidx[j]; posrb = levelidx[j+1] - 1;
+                factor_start_binary_search(pos, &poslb, &posrb);
+                if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
+                    continue;
+
+                for (k=poslb; k<=posrb; k++)
+                {
+                    // Get the position at which the previous factor
+                    // occurs in the positions array
+                    posidx = nll->getField(k)-1;
+                    // Get the position component of the previous factor
+                    prevpos = positions->getField(posidx);
+                    // Ignore factors that are all Ns
+                    if (prevpos == refseqlen) continue;
+
+                    prevlen = factor_length(posidx);
+                    // Ignore previous factor since it's too short to
+                    // contain the prefix we're looking for
+                    // TODO: Modify algorithm to look for patterns
+                    // occurring across multiple factors
+                    if (prevlen < pfxlen) continue;
+
+                    // Compare the prefix with the equivalent length
+                    // suffix of the previous factor and if they are
+                    // equal then we have a match
+                    if (compare_substr_to_refseq(intpfxptn,
+                        prevpos+prevlen-pfxlen, pfxlen))
+                        occurrences ++; 
+                }
+            }
+        }
+    }
+
+    // Split the pattern into two and binary search for factors ending
+    // with the prefix then look for the complete occurrences
+    for (; i<ptnlen; i++)
+    {
+        pfxlen = i;
+        suflen = ptnlen-i;
+
+        // Copy the 3bpb version of the prefix
+        Array intpfxptn(i, NUCLALPHASIZE);
+        for (j=0; j<i; j++)
+            intpfxptn.setField(j, nucl_to_int[(int)pattern[j]]);
+
+        // Copy the 3bpb version of the suffix
+        Array intsufptn(ptnlen-i, NUCLALPHASIZE);
+        for (; j<ptnlen; j++)
+            intsufptn.setField(j-i, nucl_to_int[(int)pattern[j]]);
+
+        // Search for the positions in the reference sequence at which
+        // the current prefix occurs
+        sa_binary_search(intpfxptn, &lb, &rb);
+
+        // The prefix doesn't occur in the reference sequence
+        if (lb == (uint64_t)-1 || rb == (uint64_t)-1)
+            continue;
+
+        // Search for pairs of factors where the first factor ends with
+        // the prefix and the second factor starts with the suffix
+        for (l=lb; l<=rb; l++)
+        {
+            pos = sa->getField(l);
+            for (j=0; j<numlevels; j++)
+            {
+                poslb = levelidx[j]; posrb = levelidx[j+1] - 1;
+                factor_end_binary_search(pos+pfxlen, &poslb, &posrb);
+                if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
+                    continue;
+
+                for (k=poslb; k<=posrb; k++)
+                {
+                    // Get the position at which the next factor
+                    // occurs in the positions array
+                    posidx = nll->getField(k)+1;
+                    // Get the position component of the next factor
+                    nextpos = positions->getField(posidx);
+                    // Ignore factors that are all Ns
+                    if (nextpos == refseqlen) continue;
+
+                    nextlen = factor_length(posidx);
+                    // Ignore next factor since it's too short to
+                    // contain the suffix we're looking for
+                    // TODO: Modify algorithm to look for patterns
+                    // occurring across multiple factors
+                    if (nextlen < suflen) continue;
+
+                    // Compare the suffix with the equivalent length
+                    // prefix of the next factor and if they are
+                    // equal then we have a match
+                    if (compare_substr_to_refseq(intsufptn, nextpos,
+                        suflen))
+                        occurrences ++; 
+                }
+            }
         }
     }
 
     cout << pattern << " : " << occurrences << endl;
 
-    for (i=1; i<=ptnlen/2; i++)
-    {
-        Array intpattern1(ptnlen-i, NUCLALPHASIZE);
-        for (j=i; j<ptnlen; j++)
-        {
-            pattern1[j-i] = pattern[j];
-            intpattern1.setField(j-i, 
-            nucl_to_int[(unsigned int)pattern[j]]);
-        }
-        pattern1[j-i] = '\0';
-
-        sa_binary_search(intpattern1, &lb, &rb);
-
-        for (l=lb; l<=rb; l++)
-        {
-            pos = sa->getField(l);
-
-            for (j=0; j<numlevels; j++)
-            {
-                poslb = levelidx[j];
-                posrb = levelidx[j+1] - 1;
-
-                factor_start_binary_search(pos, &poslb, &posrb);
-                if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
-                    continue;
-                cout << pattern1 << ' ' << pos << " : " << posrb-poslb+1 << endl;
-            }
-        }
-    }
-
-    for (; i<ptnlen; i++)
-    {
-        Array intpattern1(i, NUCLALPHASIZE);
-        for (j=0; j<i; j++)
-        {
-            pattern1[j] = pattern[j];
-            intpattern1.setField(j, 
-            nucl_to_int[(unsigned int)pattern[j]]);
-        }
-        pattern1[j] = '\0';
-
-        sa_binary_search(intpattern1, &lb, &rb);
-
-        for (l=lb; l<=rb; l++)
-        {
-            pos = sa->getField(l);
-
-            for (j=0; j<numlevels; j++)
-            {
-                poslb = levelidx[j];
-                posrb = levelidx[j+1] - 1;
-
-                factor_end_binary_search(pos, &poslb, &posrb);
-                if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
-                    continue;
-                cout << pattern1 << ' ' << pos << " : " << posrb-poslb+1 << endl;
-            }
-        }
-    }
+    delete [] pattern;
 }
 
 void RLZ_index::sa_binary_search(Array &pattern, uint64_t *cl,
@@ -550,10 +633,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
         // Get the factor at the middle index 
         posidx = nll->getField(mid);
         pos = positions->getField(posidx);
-        if (posidx+1 == numfacs)
-            len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
-        else
-            len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+        len = factor_length(posidx);
 
         // The factor is to the right of the current middle 
         if (end > pos+len)
@@ -574,10 +654,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
             // Get the factor at the left of the middle
             posidx = nll->getField(mid-1);
             pos = positions->getField(posidx);
-            if (posidx+1 == numfacs)
-                len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
-            else
-                len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+            len = factor_length(posidx);
 
             // mid - 1 factor is less than the current position so we've
             // reached the left most boundary 
@@ -611,10 +688,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
         // Get the factor at the middle index 
         posidx = nll->getField(mid);
         pos = positions->getField(posidx);
-        if (posidx+1 == numfacs)
-            len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
-        else
-            len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+        len = factor_length(posidx);
 
         // The factor is to the right of the current middle 
         if (end > pos+len)
@@ -635,10 +709,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
             // Get the factor at the right of the middle
             posidx = nll->getField(mid+1);
             pos = positions->getField(posidx);
-            if (posidx+1 == numfacs)
-                len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
-            else
-                len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+            len = factor_length(posidx);
 
             // mid + 1 factor is greater than the current position so we've
             // reached the right most boundary 
@@ -793,10 +864,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
         // Get the factor at the middle index 
         posidx = nll->getField(mid);
         pos = positions->getField(posidx);
-        if (posidx+1 == numfacs)
-            len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
-        else
-            len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+        len = factor_length(posidx);
 
         // The factor is to the right of the current middle 
         if (end > pos+len)
@@ -818,10 +886,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
             // offset 
             posidx = nll->getField(mid-1);
             pos = positions->getField(posidx);
-            if (posidx+1 == numfacs)
-                len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
-            else
-                len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+            len = factor_length(posidx);
 
             // mid - 1 factor is less than the current position so we've
             // reached the left most boundary 
@@ -855,10 +920,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
         // Get the factor at the middle index 
         posidx = nll->getField(mid);
         pos = positions->getField(posidx);
-        if (posidx+1 == numfacs)
-            len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
-        else
-            len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+        len = factor_length(posidx);
 
         // The factor is to the right of the current middle 
         if (end > pos+len)
@@ -879,10 +941,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
             // Get the factor at the right of the middle
             posidx = nll->getField(mid+1);
             pos = positions->getField(posidx);
-            if (posidx+1 == numfacs)
-                len = cumseqlens[numseqs] - facstarts->select1(posidx+1);
-            else
-                len = facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+            len = factor_length(posidx);
 
             // mid + 1 factor is greater than the current position so we've
             // reached the right most boundary 
@@ -905,6 +964,28 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
         *rb = (uint32_t)-1;
         return;
     }
+}
+
+inline uint64_t RLZ_index::factor_length(uint32_t posidx)
+{
+    if (posidx+1 == numfacs)
+        return cumseqlens[numseqs] - facstarts->select1(posidx+1);
+        
+    return facstarts->select1(posidx+2) - facstarts->select1(posidx+1);
+}
+
+inline bool RLZ_index::compare_substr_to_refseq(Array& substr,
+                       uint64_t start, uint64_t len)
+{
+    uint64_t i, j;
+
+    for (i=start, j=0; i<start+len; i++,j++)
+    {
+        if (refseq->getField(i) != substr.getField(j))
+            return false;
+    }
+
+    return true;
 }
 
 int RLZ_index::size()
