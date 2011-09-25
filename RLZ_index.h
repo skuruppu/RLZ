@@ -41,16 +41,16 @@ class RLZ_index
         /* Destructor */
         ~RLZ_index(); 
 
-        /* Display function */
+        /** Display function */
         void display();
 
-        /* Search function */
+        /** Search function */
         void search();
 
-        /* Factor file decode function */
+        /** Factor file decode function */
         void decode();
 
-        /* Prints the space usage of the RLZ data structure */
+        /** Prints the space usage of the RLZ data structure */
         int size();
 
     private:
@@ -68,7 +68,7 @@ class RLZ_index
         char **filenames;
 
         /*-------------------------------------------------------------------*/
-        /* Default data structures                                           */
+        /* Default data structures and methods                               */
         /*-------------------------------------------------------------------*/
 
         /* Reference sequence as a bit vector with 3bpb encoding
@@ -85,33 +85,44 @@ class RLZ_index
         /* Sequence cumseqlens for numseqs sequences */
         uint64_t *cumseqlens;
 
-        /* Reads the reference sequence into memory and fills in the
+        /** Reads the reference sequence into memory and fills in the
          * refseqlen and refseq variables. Also creates the suffix array
-         * of the reference sequence and stores it in SA. */
+         * of the reference sequence and stores it in SA.
+         * @param filename Reference sequence file name
+         */
         void read_reference_sequence(char *filename);
-
-        /* Reads the suffix array of the refrence sequence into memory */
-        //void read_suffix_array(char *filename);
 
         /* Reads the factors into memory and fill the positions, facstarts
          * and cumseqlens arrays */
         void read_compressed_factors();
 
-        void decompress_factors(std::ifstream &facfile,
-                                std::vector<uint64_t> &poss,
-                                std::vector<uint64_t> &lens,
-                                uint64_t &totseqlen);
-
-        /* Retrieves a substring starting at start and ending at end for
-         * seq. Returns the total number of microsecs taken to execute
-         * the query */
+        /** Retrieves a substring starting at start and ending at end for
+         * seq.
+         * @param seq Sequence to retrieve from
+         * @param start Start position to retrieve from
+         * @param end End position to stop retrieving
+         * @return Time taken to evaluate the query in microseconds
+         */
         long display(uint64_t seq, uint64_t start, uint64_t end,
                      std::vector<uint> &substring);
 
+        /** Retrieves a substring starting and ending at absolute
+         * positions in the index.
+         * @param start Start position in the index to retrieve from
+         * @param end End position in the index to retrieve from
+         * @param substring Vector to store the retrieved substring
+         * @return Time taken to evaluate the query in microseconds
+         */
         long display(uint64_t start, uint64_t end, vector <uint> &substring);
 
+        /** Given a factor id, returns the length of that factor.
+         * @param facidx Factor id
+         * @return Length of the factor
+         */
+        inline uint64_t factor_length(uint32_t facidx);
+
         /*-------------------------------------------------------------------*/
-        /* Locate data structures                                            */
+        /* Locate related data structures and methods                        */
         /*-------------------------------------------------------------------*/
 
         // Suffix array of the reference sequence
@@ -122,20 +133,57 @@ class RLZ_index
         uint32_t *levelidx;
         uint32_t numlevels;
 
+        /** Returns the boundaries of the suffix array that contains the
+         * given pattern. cl and cr are set to (uint64_t)-1 if pattern
+         * does not occur in the suffix array.
+         * @param pattern Pattern to search for
+         * @param cl Variable to store the return left boundary
+         * @param cr Variable to sotre the return right boundary
+         */
         void sa_binary_search(cds_utils::Array &pattern, uint64_t *cl,
                               uint64_t *cr);
 
+        /** Returns the boundaries of a level in the nested level list
+         * that contains the given interval represented by the variables
+         * start and end. lb and lr are set to (uint32_t)-1 if the
+         * interval does not occur in the suffix array.
+         * @param start Start position of the interval
+         * @param end End position of the interval
+         * @param lb Initial left boundary and the place to store the return left boundary
+         * @param rb INitial right boundary and the place to store the return right boundary
+         */
         void facs_binary_search(uint64_t start, uint64_t end, 
                                 uint32_t *lb, uint32_t *rb);
 
+        /** Returns the boundaries of a level in the nested level list 
+         * that contains the factors that start with the given start
+         * position. lb and lr are set to (uint32_t)-1 if the interval
+         * does not occur in the suffix array.
+         * @param start Start position of an interval to search for
+         * @param lb Initial left boundary and the place to store the return left boundary
+         * @param rb Initial right boundary and the place to store the return right boundary
+         */
         void factor_start_binary_search(uint64_t start, uint32_t *lb,
                                         uint32_t *rb);
 
+        /** Returns the boundaries of a level in the nested level list
+         * that contains the factors that end with the given end
+         * position. lb and lr are set to (uint32_t)-1 if the interval
+         * does not occur in the suffix array.
+         * @param end End position of an interval to search for
+         * @param lb Initial left boundary and the place to store the return left boundary
+         * @param rb Initial right boundary and the place to store the return right boundary
+         */
         void factor_end_binary_search(uint64_t end, uint32_t *lb,
                                       uint32_t *rb);
 
-        inline uint64_t factor_length(uint32_t posidx);
-
+        /** Compare the given substring to the reference sequence
+         * starting from the start position.
+         * @param substr Substring to search for
+         * @param start Position in the reference sequence to search from
+         * @param len Length of the substring to search for
+         * @return Returns true if the substrings are equal and false otherwise
+         */
         inline bool compare_substr_to_refseq(cds_utils::Array& substr, 
                                              uint64_t start, 
                                              uint64_t len);
