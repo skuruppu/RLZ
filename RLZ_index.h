@@ -44,8 +44,11 @@ class RLZ_index
         /** Display function */
         void display();
 
+        /** Count function */
+        void count();
+
         /** Search function */
-        void search();
+        void locate();
 
         /** Factor file decode function */
         void decode();
@@ -132,6 +135,15 @@ class RLZ_index
         cds_utils::Array *nll;
         uint32_t *levelidx;
         uint32_t numlevels;
+
+        /** Implements the search functionality.
+         * @param pattern Pattern to search for
+         * @param ptnlen Length of the pattern being searched for
+         * @param iscount True if just counting the occurrence, false otherwise
+         * @return Number of occurrences of the pattern
+         */
+        uint64_t search(const char *pattern, unsigned int ptnlen, 
+                        bool iscount=false);
 
         /** Returns the boundaries of the suffix array that contains the
          * given pattern. cl and cr are set to (uint64_t)-1 if pattern

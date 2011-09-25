@@ -69,7 +69,7 @@ int main (int argc, char **argv)
 
     rlzidx->size();
     //rlzidx->display();
-    rlzidx->search();
+    rlzidx->count();
 
     return 0; 
 }
@@ -331,17 +331,52 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
     return (msec2 - msec1);
 }
 
-void RLZ_index::search()
+void RLZ_index::count()
 {
-    uint64_t lb, rb, ptnlen, pfxlen, suflen, pos, occurrences;
+    char *pattern = new char[1000];
+    unsigned int ptnlen;
+
+    while (true)
+    {
+        cin.getline(pattern, 1000);
+        ptnlen = strlen(pattern);
+
+        if (ptnlen == 0) break;
+
+        cout << pattern << " : " << search(pattern, ptnlen, true);
+        cout << endl;
+    }
+
+    delete [] pattern;
+}
+
+void RLZ_index::locate()
+{
+    char *pattern = new char[1000];
+    unsigned int ptnlen;
+
+    while (true)
+    {
+        cin.getline(pattern, 1000);
+        ptnlen = strlen(pattern);
+
+        if (ptnlen == 0) break;
+
+        cout << pattern << " : " << search(pattern, ptnlen);
+        cout << endl;
+    }
+
+    delete [] pattern;
+}
+
+uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
+                           bool iscount)
+{
+    uint64_t lb, rb, pfxlen, suflen, pos, occurrences;
     uint64_t i, j, k, l;
-    char *pattern = new char[100];
     uint32_t poslb, posrb, facidx;
     uint64_t prevpos, prevlen, nextpos, nextlen;
     vector <uint> substr;
-
-    cin.getline(pattern, 100);
-    ptnlen = strlen(pattern);
 
     // Convert the pattern to use 3bpb
     Array intpattern(ptnlen, NUCLALPHASIZE);
@@ -507,9 +542,7 @@ void RLZ_index::search()
         }
     }
 
-    cout << pattern << " : " << occurrences << endl;
-
-    delete [] pattern;
+    return occurrences;
 }
 
 void RLZ_index::sa_binary_search(Array &pattern, uint64_t *cl,
