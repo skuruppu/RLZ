@@ -335,7 +335,11 @@ void RLZ_index::count()
 {
     char *pattern = new char[1000];
     unsigned int ptnlen;
+    uint64_t occurrences, totptns, totlen, totocc;
+    long msec1, msec2, tottime;
+    timeval tv;
 
+    tottime = totptns = totlen = totocc = 0;
     while (true)
     {
         cin.getline(pattern, 1000);
@@ -343,9 +347,26 @@ void RLZ_index::count()
 
         if (ptnlen == 0) break;
 
-        cout << pattern << " : " << search(pattern, ptnlen, true);
-        cout << endl;
+        // Start timer 
+        gettimeofday(&tv, NULL);
+        msec1 = tv.tv_sec*1000*1000 + tv.tv_usec;
+
+        occurrences = search(pattern, ptnlen, true);
+
+        // End timer 
+        gettimeofday(&tv, NULL);
+        msec2 = tv.tv_sec*1000*1000 + tv.tv_usec;
+
+        // Update statistics
+        tottime += (msec2-msec1);
+        totptns ++;
+        totlen += ptnlen;
+        totocc += occurrences;
+
+        cout << pattern << " : " << occurrences << endl;
     }
+
+    cerr << (float)tottime/totocc << " microseconds/occurrences\n";
 
     delete [] pattern;
 }
@@ -354,6 +375,11 @@ void RLZ_index::locate()
 {
     char *pattern = new char[1000];
     unsigned int ptnlen;
+    uint64_t occurrences, totptns, totlen, totocc;
+    long msec1, msec2, tottime;
+    timeval tv;
+
+    tottime = totptns = totlen = totocc = 0;
 
     while (true)
     {
@@ -362,9 +388,26 @@ void RLZ_index::locate()
 
         if (ptnlen == 0) break;
 
-        cout << pattern << " : " << search(pattern, ptnlen);
-        cout << endl;
+        // Start timer 
+        gettimeofday(&tv, NULL);
+        msec1 = tv.tv_sec*1000*1000 + tv.tv_usec;
+
+        occurrences = search(pattern, ptnlen);
+
+        // End timer 
+        gettimeofday(&tv, NULL);
+        msec2 = tv.tv_sec*1000*1000 + tv.tv_usec;
+
+        // Update statistics
+        tottime += (msec2-msec1);
+        totptns ++;
+        totlen += ptnlen;
+        totocc += occurrences;
+
+        cout << pattern << " : " << occurrences << endl;
     }
+
+    cerr << (float)tottime/totocc << " microseconds/occurrences\n";
 
     delete [] pattern;
 }
