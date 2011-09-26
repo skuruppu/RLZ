@@ -75,6 +75,10 @@ class RLZ_index
         /* The names of the input files */
         char **filenames;
 
+		// If this is true, can only read the data structures required
+		// to implement display() query
+        bool displayonly;
+
         /*-------------------------------------------------------------------*/
         /* Default data structures and methods                               */
         /*-------------------------------------------------------------------*/

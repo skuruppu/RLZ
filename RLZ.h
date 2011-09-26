@@ -190,10 +190,12 @@ class FactorWriterIndex : public FactorWriter
          * @param refseq Reference sequence
          * @param refseqlen Length of reference sequence
          * @param logrefseqlen Number of bits for encoding positions
+         * @param displayonly Output only display() query structures
          */
         FactorWriterIndex(ofstream& outfile, cds_utils::Array *refseq,
                           cds_utils::Array *sa, uint64_t refseqlen,
-                          uint64_t logrefseqlen);
+                          uint64_t logrefseqlen, bool displayonly);
+
 
         /** Destructor for the class. */
         ~FactorWriterIndex();
@@ -233,6 +235,10 @@ class FactorWriterIndex : public FactorWriter
 
         // Accumulate the length of a sequence
         uint64_t cumlen;
+
+        // If this is true, only write the data structures required to
+        // implement display() query
+        bool displayonly;
 
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
@@ -421,6 +427,15 @@ class RLZCompress : RLZ
                     char encoding='b', bool isshort=false, 
                     bool isliss=false);
 
+        /** Constructor for the RLZ compress class.
+         * @param filenames Filenames for sequences to be compressed
+         * @param numfiles Number of files in the dataset
+         * @param idxname Name to give to the index
+         * @param displayonly Only implement display() query
+         */
+        RLZCompress(char **filenames, uint64_t numfiles, char *idxname,
+                    bool displayonly);
+
         /** Temporary constructor that implements the suffix tree
          * instead of a suffix array.
          * @param filenames Filenames for sequences to be compressed
@@ -451,6 +466,17 @@ class RLZCompress : RLZ
 
         // LISS encoding
         bool isliss;
+
+        // Name of the output index file
+        char *idxname;
+        
+        // If this is true, only write the data structures required to
+        // implement display() query
+        bool displayonly;
+
+        /** Read the reference sequence and construct the suffix array
+         */
+        void read_refseq_and_sa();
 
         /** Conducts the relative Lempel-Ziv compression of the sequence
          * inside the infile and writes the output to outfile.

@@ -66,8 +66,7 @@ int main (int argc, char **argv)
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
     rlzidx->size();
-    //rlzidx->display();
-    rlzidx->count();
+    rlzidx->locate();
 
     return 0; 
 }
@@ -110,6 +109,20 @@ RLZ_index::RLZ_index(char *filename) :
     for (uint64_t i=0; i<numseqs; i++)
         idxfile.read((char*)&cumseqlens[i], sizeof(uint64_t));
 
+    // Calculate the log of the reference sequence length
+    refseqlen = refseq->getLength()-1; // length includes null byte
+    uint64_t i = floor(log2(refseqlen));
+    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
+
+	idxfile.get();
+	if (idxfile.eof())
+	{
+		displayonly = true;
+		idxfile.close();
+		return;
+	}
+	idxfile.unget();
+
     // Read in data stuctures needed to implement locate() and count()
     // queries
 
@@ -131,11 +144,6 @@ RLZ_index::RLZ_index(char *filename) :
 
     // Read the seqfacstart bit vector
     seqfacstart = BitSequenceSDArray::load(idxfile);
-
-    // Calculate the log of the reference sequence length
-    refseqlen = refseq->getLength()-1; // length includes null byte
-    uint64_t i = floor(log2(refseqlen));
-    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 
     idxfile.close();
 }
@@ -1268,37 +1276,40 @@ int RLZ_index::size()
     cerr << "Factors: " << size << " bytes\n";
     cerr << endl;
 
-    size = 0;
-    // Contents of suffix array
-    size += (unsigned int)sa->getSize();
-    cerr << "suffix array: " << (unsigned int)sa->getSize() << " bytes\n";
-    // Contents of suffix tree
-    //size += (unsigned int)st->getSize();
-    //cerr << "suffix tree: " << (unsigned int)st->getSize() << " bytes\n";
-    // Contents of nested level lists
-    size += ((unsigned int)nll->getSize() +
-             (numlevels+1)*sizeof(uint32_t));
-    cerr << "nested level lists: "
-         << (unsigned int)nll->getSize() + 
-            (numlevels+1)*sizeof(uint32_t)
-         << " bytes\n";
-    // Contents of isstart and isend
-    size += (unsigned int)isstart->getSize();
-    cerr << "isstart: " << (unsigned int)isstart->getSize() << " bytes\n";
-    size += (unsigned int)isend->getSize();
-    cerr << "isstart: " << (unsigned int)isend->getSize() << " bytes\n";
-    // Contents of seqfacstart
-    size += (unsigned int)seqfacstart->getSize();
-    cerr << "seqfacstart: " << (unsigned int)seqfacstart->getSize() << " bytes\n";
-    // Size of the sa and nll variables
-    size += (sizeof(sa)+sizeof(nll)+sizeof(levelidx)+sizeof(numlevels));
-    // Size of isstart, isend and seqfacstart bit vectors
-    size += (sizeof(isstart)+sizeof(isend)+sizeof(seqfacstart));
-    totalsize += size;
+	if (!displayonly)
+	{
+		size = 0;
+		// Contents of suffix array
+		size += (unsigned int)sa->getSize();
+		cerr << "suffix array: " << (unsigned int)sa->getSize() << " bytes\n";
+		// Contents of suffix tree
+		//size += (unsigned int)st->getSize();
+		//cerr << "suffix tree: " << (unsigned int)st->getSize() << " bytes\n";
+		// Contents of nested level lists
+		size += ((unsigned int)nll->getSize() +
+				 (numlevels+1)*sizeof(uint32_t));
+		cerr << "nested level lists: "
+			 << (unsigned int)nll->getSize() + 
+				(numlevels+1)*sizeof(uint32_t)
+			 << " bytes\n";
+		// Contents of isstart and isend
+		size += (unsigned int)isstart->getSize();
+		cerr << "isstart: " << (unsigned int)isstart->getSize() << " bytes\n";
+		size += (unsigned int)isend->getSize();
+		cerr << "isstart: " << (unsigned int)isend->getSize() << " bytes\n";
+		// Contents of seqfacstart
+		size += (unsigned int)seqfacstart->getSize();
+		cerr << "seqfacstart: " << (unsigned int)seqfacstart->getSize() << " bytes\n";
+		// Size of the sa and nll variables
+		size += (sizeof(sa)+sizeof(nll)+sizeof(levelidx)+sizeof(numlevels));
+		// Size of isstart, isend and seqfacstart bit vectors
+		size += (sizeof(isstart)+sizeof(isend)+sizeof(seqfacstart));
+		totalsize += size;
 
-    cerr << "-----\n";
-    cerr << "Search: " << size << " bytes\n";
-    cerr << endl;
+		cerr << "-----\n";
+		cerr << "Search: " << size << " bytes\n";
+		cerr << endl;
+	}
 
     cerr << "Total: " << totalsize << " bytes\n";
     cerr << endl;

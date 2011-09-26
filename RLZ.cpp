@@ -4,10 +4,6 @@
 #include "RLZ.h"
 #include "alphabet.h"
 
-#include <BitSequence.h>
-#include <Mapper.h>
-#include <Sequence.h>
-
 using namespace std;
 using namespace cds_utils;
 using namespace cds_static;
@@ -20,86 +16,26 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->encoding = encoding;
     this->isshort = isshort;
     this->isliss = isliss;
+    this->idxname = NULL;
+    this->displayonly = false;
     this->st = NULL;
 
-    initialise_nucl_converters();
+    read_refseq_and_sa();
+}
 
-    uint64_t i;
-    char safilename[1024];
-    sprintf(safilename, "%s.sa", filenames[0]);
-    ifstream infile;
-    infile.open(safilename, ifstream::in);
-    // Need to construct suffix tree
-    if (!infile.good())
-    {
-        infile.close();
-        // Read reference sequence into memory since its needed by
-        // suffix tree constructor
-        char *sequence = NULL;
-        if (loadText(filenames[0], &sequence, &refseqlen))
-        {
-            cerr << "Couldn't read reference sequence.\n";
-            exit(1);
-        }
-        // loadText places an extra byte at the end
-        refseqlen--;
+RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
+                         char *idxname, bool displayonly)
+{
+    this->filenames = filenames;
+    this->numfiles = numfiles;
+    this->encoding = 'i';
+    this->isshort = false;
+    this->isliss = false;
+    this->idxname = idxname;
+    this->displayonly = displayonly;
+    this->st = NULL;
 
-        // Read the reference sequence
-        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
-        store_sequence(sequence, filenames[0], refseq, refseqlen);
-
-        // Construct suffix array
-        uint64_t *sufarray = new uint64_t[refseqlen+1];
-        if (divsufsort64((sauchar_t*)sequence, (saidx64_t*)sufarray,
-            refseqlen+1) < 0)
-        {
-            cerr << "Error in constructing suffix array.\n";
-            exit(1);
-        }
-
-        sa = new Array(refseqlen+1, refseqlen);
-        for (i=0; i<=refseqlen; i++)
-        {
-            sa->setField(i, sufarray[i]);
-        }
-
-        // Write out suffix array to disk for later use
-        ofstream outfile(safilename);
-        sa->save(outfile);
-        outfile.close();
-
-        delete [] sequence;
-        delete [] sufarray;
-    }
-    else
-    {
-        // Load suffix array from saved suffix array file
-        sa = new Array(infile);
-        infile.close();
-        
-        // Open reference sequence file
-        infile.open(filenames[0], ifstream::in);
-        if (!infile.good())
-        {
-            cerr << "Couldn't open file " << filenames[0] << ".\n";
-            exit(1);
-        }
-
-        // Get the reference sequence length
-        infile.seekg(0, ios::end);
-        refseqlen = infile.tellg();
-        infile.seekg(0, ios::beg);
-
-        // Read the reference sequence
-        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
-        store_sequence(infile, filenames[0], refseq, refseqlen);
-        infile.close();
-
-    }
-
-    // Calculate the log of the reference sequence length
-    i = floor(log2(refseqlen));
-    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
+    read_refseq_and_sa();
 }
 
 RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
@@ -177,6 +113,88 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 }
 
+void RLZCompress::read_refseq_and_sa()
+{
+    initialise_nucl_converters();
+
+    uint64_t i;
+    char safilename[1024];
+    sprintf(safilename, "%s.sa", filenames[0]);
+    ifstream infile;
+    infile.open(safilename, ifstream::in);
+    // Need to construct suffix array
+    if (!infile.good())
+    {
+        infile.close();
+        // Read reference sequence into memory since its needed by
+        // suffix tree constructor
+        char *sequence = NULL;
+        if (loadText(filenames[0], &sequence, &refseqlen))
+        {
+            cerr << "Couldn't read reference sequence.\n";
+            exit(1);
+        }
+        // loadText places an extra byte at the end
+        refseqlen--;
+
+        // Read the reference sequence
+        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
+        store_sequence(sequence, filenames[0], refseq, refseqlen);
+
+        // Construct suffix array
+        uint64_t *sufarray = new uint64_t[refseqlen+1];
+        if (divsufsort64((sauchar_t*)sequence, (saidx64_t*)sufarray,
+            refseqlen+1) < 0)
+        {
+            cerr << "Error in constructing suffix array.\n";
+            exit(1);
+        }
+
+        sa = new Array(refseqlen+1, refseqlen);
+        for (i=0; i<=refseqlen; i++)
+        {
+            sa->setField(i, sufarray[i]);
+        }
+
+        // Write out suffix array to disk for later use
+        ofstream outfile(safilename);
+        sa->save(outfile);
+        outfile.close();
+
+        delete [] sequence;
+        delete [] sufarray;
+    }
+    else
+    {
+        // Load suffix array from saved suffix array file
+        sa = new Array(infile);
+        infile.close();
+        
+        // Open reference sequence file
+        infile.open(filenames[0], ifstream::in);
+        if (!infile.good())
+        {
+            cerr << "Couldn't open file " << filenames[0] << ".\n";
+            exit(1);
+        }
+
+        // Get the reference sequence length
+        infile.seekg(0, ios::end);
+        refseqlen = infile.tellg();
+        infile.seekg(0, ios::beg);
+
+        // Read the reference sequence
+        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
+        store_sequence(infile, filenames[0], refseq, refseqlen);
+        infile.close();
+
+    }
+
+    // Calculate the log of the reference sequence length
+    i = floor(log2(refseqlen));
+    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
+}
+
 RLZCompress::~RLZCompress()
 {
     delete refseq;
@@ -249,17 +267,16 @@ void RLZCompress::compress()
     if (encoding == 'i')
     {
         // Open output file to write compressed sequence to
-        sprintf(outfilename, "%s.idx", filenames[0]);
-        outfile.open(outfilename, ofstream::out);
+        outfile.open(idxname, ofstream::out);
         if (!outfile.good())
         {
             cerr << "Couldn't open file " << outfilename << ".\n";
             exit(1);
         }
 
-        facwriter = new FactorWriterIndex(outfile, this->refseq,
-                                          this->sa, refseqlen,
-                                          logrefseqlen);
+        facwriter = new FactorWriterIndex(outfile, refseq, sa,
+                                          refseqlen, logrefseqlen,
+                                          displayonly);
     }
 
     for (i=1; i<numfiles; i++)
@@ -1395,13 +1412,15 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
                                      cds_utils::Array *refseq, 
                                      cds_utils::Array *sa, 
                                      uint64_t refseqlen, 
-                                     uint64_t logrefseqlen) :
+                                     uint64_t logrefseqlen,
+                                     bool displayonly) :
     outfile(outfile)
 {
     this->refseq = refseq;
     this->sa = sa;
     this->refseqlen = refseqlen;
     this->logrefseqlen = logrefseqlen;
+    this->displayonly = displayonly;
 
     bwriter = new BitWriter(outfile);
 
@@ -1415,13 +1434,16 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
     posarraylen = 1000;
     positions = new unsigned int[posarraylen];
 
-	isstart = new BitString(refseqlen);
-	isend = new BitString(refseqlen);
+    if (!displayonly)
+    {
+        isstart = new BitString(refseqlen);
+        isend = new BitString(refseqlen);
 
-    currseqfacnum = 0;
+        currseqfacnum = 0;
 
-    nll = NULL;
-    levelidx = NULL;
+        nll = NULL;
+        levelidx = NULL;
+    }
 }
 
 void FactorWriterIndex::write_index()
@@ -1461,51 +1483,58 @@ void FactorWriterIndex::write_index()
 
     // Write out the data structures necessary to implement count() and
     // locate() queries
-    /*
-    // Construct suffix tree
-    char *sequence = new char[refseqlen+1];
-    for (i=0; i<refseqlen; i++)
-        sequence[i] = int_to_nucl[refseq->getField(i)];
-    sequence[i] = '\0';
-    SuffixTreeY sty(sequence, refseqlen+1);
-    sty.save(outfile);
-    cout << "st: " << sty.getSize() << endl;
-    delete [] sequence;
-    */
+    if (!displayonly)
+    {
+        /*
+        // Construct suffix tree
+        char *sequence = new char[refseqlen+1];
+        for (i=0; i<refseqlen; i++)
+            sequence[i] = int_to_nucl[refseq->getField(i)];
+        sequence[i] = '\0';
+        SuffixTreeY sty(sequence, refseqlen+1);
+        sty.save(outfile);
+        cout << "st: " << sty.getSize() << endl;
+        delete [] sequence;
+        */
 
-    // Write out the suffix array
-    sa->save(outfile);
-    cout << "sa: " << sa->getSize() << endl;
+        // Write out the suffix array
+        sa->save(outfile);
+        cout << "sa: " << sa->getSize() << endl;
 
-	// Construct and write the nested level list
-    construct_nested_level_list(compfacstarts);
-    nll->save(outfile);
-    outfile.write((char*)&numlevels, sizeof(uint32_t));
-    outfile.write((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
-    cout << "nll: " << nll->getSize()+(numlevels+1)*sizeof(uint32_t) << endl;
+        // Construct and write the nested level list
+        construct_nested_level_list(compfacstarts);
+        nll->save(outfile);
+        outfile.write((char*)&numlevels, sizeof(uint32_t));
+        outfile.write((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
+        cout << "nll: " << nll->getSize()+(numlevels+1)*sizeof(uint32_t);
+        cout << endl;
 
-    // Create the compressed bit vector for isstart and isend
-    BitSequenceRRR compisstart(*isstart);
-    BitSequenceRRR compisend(*isend);
-    compisstart.save(outfile);
-    compisend.save(outfile);
-    cout << "isstart: " << compisstart.getSize() << endl;
-    cout << "isend: " << compisend.getSize() << endl;
+        // Create the compressed bit vector for isstart and isend
+        BitSequenceRRR compisstart(*isstart);
+        BitSequenceRRR compisend(*isend);
+        compisstart.save(outfile);
+        compisend.save(outfile);
+        cout << "isstart: " << compisstart.getSize() << endl;
+        cout << "isend: " << compisend.getSize() << endl;
 
-    // Create the compressed bit vector for factor start positions
-    BitSequenceSDArray compseqstarts(seqstarts);
-    compseqstarts.save(outfile);
-    cout << "compseqstarts: " << compseqstarts.getSize() << endl;
+        // Create the compressed bit vector for factor start positions
+        BitSequenceSDArray compseqstarts(seqstarts);
+        compseqstarts.save(outfile);
+        cout << "compseqstarts: " << compseqstarts.getSize() << endl;
+    }
 }
 
 FactorWriterIndex::~FactorWriterIndex()
 {
     delete bwriter;
     delete [] positions;
-    if (nll) delete nll;
-    if (levelidx) delete [] levelidx;
-    delete isstart;
-    delete isend;
+    if (!displayonly)
+    {
+        if (nll) delete nll;
+        if (levelidx) delete [] levelidx;
+        delete isstart;
+        delete isend;
+    }
 }
 
 void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
@@ -1530,15 +1559,18 @@ void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
     }
     set_field_64(positions, logrefseqlen, numfacs, pos);
 
-	if (pos != refseqlen)
-	{
-		isstart->setBit(pos);
-		isend->setBit(pos+len);
-	}
-
     cumlen += len;
     numfacs++;
-    currseqfacnum++;
+
+    if (!displayonly)
+    {
+        if (pos != refseqlen)
+        {
+            isstart->setBit(pos);
+            isend->setBit(pos+len);
+        }
+        currseqfacnum++;
+    }
 }
 
 void FactorWriterIndex::end_of_sequence()
@@ -1549,11 +1581,14 @@ void FactorWriterIndex::end_of_sequence()
     // Reset the cumulative length in preparation for the next sequence
     cumlen = 0;
 
-    // Keep track of the factors at which new sequences start
-    seqstarts.push_back(true);
-    for (uint32_t i=1; i<currseqfacnum; i++)
-        seqstarts.push_back(false);
-    currseqfacnum = 0;
+    if (!displayonly)
+    {
+        // Keep track of the factors at which new sequences start
+        seqstarts.push_back(true);
+        for (uint32_t i=1; i<currseqfacnum; i++)
+            seqstarts.push_back(false);
+        currseqfacnum = 0;
+    }
 }
 
 
