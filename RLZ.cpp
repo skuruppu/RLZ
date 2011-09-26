@@ -1416,6 +1416,8 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
 
 	isstart = new BitString(refseqlen);
 	isend = new BitString(refseqlen);
+
+    currseqfacnum = 0;
 }
 
 FactorWriterIndex::~FactorWriterIndex()
@@ -1467,6 +1469,11 @@ FactorWriterIndex::~FactorWriterIndex()
     cout << "isstart: " << compisstart.getSize() << endl;
     cout << "isend: " << compisend.getSize() << endl;
 
+    // Create the compressed bit vector for factor start positions
+    BitSequenceSDArray compseqstarts(seqstarts);
+    compseqstarts.save(outfile);
+    cout << "compseqstarts: " << compseqstarts.getSize() << endl;
+
     delete bwriter;
     delete positions;
 }
@@ -1501,6 +1508,7 @@ void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
 
     cumlen += len;
     numfacs++;
+    currseqfacnum++;
 }
 
 void FactorWriterIndex::finalise()
@@ -1510,6 +1518,12 @@ void FactorWriterIndex::finalise()
 
     // Reset the cumulative length in preparation for the next sequence
     cumlen = 0;
+
+    // Keep track of the factors at which new sequences start
+    seqstarts.push_back(true);
+    for (uint32_t i=1; i<currseqfacnum; i++)
+        seqstarts.push_back(false);
+    currseqfacnum = 0;
 }
 
 

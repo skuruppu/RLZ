@@ -32,6 +32,12 @@
 #include <Mapper.h>
 #include <Sequence.h>
 
+typedef struct occurrence
+{
+    uint64_t seq;
+    uint64_t pos;
+} occ_t;
+
 class RLZ_index
 {
     public:
@@ -141,6 +147,8 @@ class RLZ_index
         cds_static::BitSequenceRRR *isstart;
         cds_static::BitSequenceRRR *isend;
 
+        cds_static::BitSequenceSDArray *seqfacstart;
+
         /** Implements the search functionality.
          * @param pattern Pattern to search for
          * @param ptnlen Length of the pattern being searched for
@@ -148,7 +156,7 @@ class RLZ_index
          * @return Number of occurrences of the pattern
          */
         uint64_t search(const char *pattern, unsigned int ptnlen, 
-                        bool iscount=false);
+                        vector<occ_t>& occs, bool iscount=false);
 
         /** Returns the boundaries of the suffix array that contains the
          * given pattern. cl and cr are set to (uint64_t)-1 if pattern

@@ -49,8 +49,6 @@ using namespace std;
 using namespace cds_utils;
 using namespace cds_static;
 
-uint64_t cumfaclen = 0;
-
 int main (int argc, char **argv)
 {
     char usage[] = "Usage: rlz_index FILE\n \
@@ -69,7 +67,7 @@ int main (int argc, char **argv)
 
     rlzidx->size();
     //rlzidx->display();
-    rlzidx->count();
+    rlzidx->locate();
 
     return 0; 
 }
@@ -122,6 +120,9 @@ RLZ_index::RLZ_index(char *filename) :
     // Read the isstart and isend bit vectors
     isstart = BitSequenceRRR::load(idxfile);
     isend = BitSequenceRRR::load(idxfile);
+
+    // Read the seqfacstart bit vector
+    seqfacstart = BitSequenceSDArray::load(idxfile);
 
     // Calculate the log of the reference sequence length
     refseqlen = refseq->getLength()-1; // length includes null byte
@@ -341,6 +342,7 @@ void RLZ_index::count()
     char *pattern = new char[1000];
     unsigned int ptnlen;
     uint64_t occurrences, totptns, totlen, totocc;
+    vector<occ_t> occs(0);
     long msec1, msec2, tottime;
     timeval tv;
 
@@ -356,7 +358,7 @@ void RLZ_index::count()
         gettimeofday(&tv, NULL);
         msec1 = tv.tv_sec*1000*1000 + tv.tv_usec;
 
-        occurrences = search(pattern, ptnlen, true);
+        occurrences = search(pattern, ptnlen, occs, true);
 
         // End timer 
         gettimeofday(&tv, NULL);
@@ -381,6 +383,7 @@ void RLZ_index::locate()
     char *pattern = new char[1000];
     unsigned int ptnlen;
     uint64_t occurrences, totptns, totlen, totocc;
+    vector<occ_t> occs;
     long msec1, msec2, tottime;
     timeval tv;
 
@@ -397,7 +400,7 @@ void RLZ_index::locate()
         gettimeofday(&tv, NULL);
         msec1 = tv.tv_sec*1000*1000 + tv.tv_usec;
 
-        occurrences = search(pattern, ptnlen);
+        occurrences = search(pattern, ptnlen, occs);
 
         // End timer 
         gettimeofday(&tv, NULL);
@@ -409,7 +412,10 @@ void RLZ_index::locate()
         totlen += ptnlen;
         totocc += occurrences;
 
-        cout << pattern << " : " << occurrences << endl;
+        for (uint64_t i=0; i<occurrences; i++)
+            cout << occs.at(i).seq << ' ' << occs.at(i).pos << endl;
+
+        occs.clear();
     }
 
     cerr << (float)tottime/totocc << " microseconds/occurrences\n";
@@ -418,13 +424,14 @@ void RLZ_index::locate()
 }
 
 uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
-                           bool iscount)
+                           vector<occ_t>& occs, bool iscount)
 {
-    uint64_t lb, rb, pfxlen, suflen, pos, occurrences;
+    uint64_t lb, rb, pfxlen, suflen, pos, occurrences, seq;
     uint64_t i, j, k, l;
     uint32_t poslb, posrb, facidx;
-    uint64_t prevpos, prevlen, nextpos, nextlen;
+    uint64_t prevpos, prevlen, nextpos, nextlen, abspos, occpos;
     vector <uint> substr;
+    occ_t occ;
 
     // Convert the pattern to use 3bpb
     Array intpattern(ptnlen, NUCLALPHASIZE);
@@ -442,6 +449,16 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // occurrences
         occurrences += (rb - lb + 1);
 
+        if (!iscount)
+        {
+            for (i=lb; i<=rb; i++)
+            {
+                occ.seq = 0;
+                occ.pos = sa->getField(i);
+                occs.push_back(occ);
+            }
+        }
+
         // For each position of occurrence in the 
         for (i=lb; i<=rb; i++)
         {
@@ -456,6 +473,20 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     continue;
 
                 occurrences += (posrb - poslb + 1);
+
+                if (!iscount)
+                {
+                    for (k=poslb; k<=posrb; k++)
+                    {
+                        facidx = nll->getField(k);
+                        seq = seqfacstart->rank1(facidx);
+                        abspos = facstarts->select1(facidx+1)
+                                 + (pos-positions->getField(facidx));
+                        occpos = abspos - cumseqlens[seq];
+                        occ.seq = seq; occ.pos = occpos;
+                        occs.push_back(occ);
+                    }
+                }
             }
         }
     }
@@ -522,7 +553,18 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // equal then we have a match
                     if (compare_substr_to_refseq(intpfxptn,
                         prevpos+prevlen-pfxlen, pfxlen))
+                    {
                         occurrences ++; 
+
+                        if (!iscount)
+                        {
+                            seq = seqfacstart->rank1(facidx);
+                            occpos = facstarts->select1(facidx+2)
+                                     - pfxlen - cumseqlens[seq];
+                            occ.seq = seq; occ.pos = occpos;
+                            occs.push_back(occ);
+                        }
+                    }
                 }
             }
         }
@@ -590,7 +632,18 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // equal then we have a match
                     if (compare_substr_to_refseq(intsufptn, nextpos,
                         suflen))
+                    {
                         occurrences ++; 
+
+                        if (!iscount)
+                        {
+                            seq = seqfacstart->rank1(facidx-1);
+                            occpos = facstarts->select1(facidx+1)
+                                     - pfxlen - cumseqlens[seq];
+                            occ.seq = seq; occ.pos = occpos;
+                            occs.push_back(occ);
+                        }
+                    }
                 }
             }
         }
@@ -1135,9 +1188,13 @@ int RLZ_index::size()
     cerr << "isstart: " << (unsigned int)isstart->getSize() << " bytes\n";
     size += (unsigned int)isend->getSize();
     cerr << "isstart: " << (unsigned int)isend->getSize() << " bytes\n";
+    // Contents of seqfacstart
+    size += (unsigned int)seqfacstart->getSize();
+    cerr << "seqfacstart: " << (unsigned int)seqfacstart->getSize() << " bytes\n";
     // Size of the sa and nll variables
     size += (sizeof(sa)+sizeof(nll)+sizeof(levelidx)+sizeof(numlevels));
-    size += (sizeof(isstart)+sizeof(isend));
+    // Size of isstart, isend and seqfacstart bit vectors
+    size += (sizeof(isstart)+sizeof(isend)+sizeof(seqfacstart));
     totalsize += size;
 
     cerr << "-----\n";
