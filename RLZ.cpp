@@ -1419,6 +1419,9 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
 	isend = new BitString(refseqlen);
 
     currseqfacnum = 0;
+
+    nll = NULL;
+    levelidx = NULL;
 }
 
 void FactorWriterIndex::write_index()
@@ -1499,8 +1502,8 @@ FactorWriterIndex::~FactorWriterIndex()
 {
     delete bwriter;
     delete [] positions;
-    delete nll;
-    delete [] levelidx;
+    if (nll) delete nll;
+    if (levelidx) delete [] levelidx;
     delete isstart;
     delete isend;
 }
