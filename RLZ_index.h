@@ -16,11 +16,9 @@
  */
 
 /*
- * RLZ_index - Relative Lempel Ziv
- * Implements search for a compressed RLZ index. So far only supports
- * random access (display()).
- * Authors: Simon Puglisi (simon.puglisi@rmit.edu.au)
- *          Shanika Kuruppu (kuruppu@csse.unimelb.edu.au)
+ * RLZ - Relative Lempel Ziv
+ * Implements a self-index using RLZ.
+ * Authors: Shanika Kuruppu (kuruppu@csse.unimelb.edu.au)
  */
 
 #include <stdio.h>
