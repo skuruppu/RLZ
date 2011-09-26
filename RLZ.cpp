@@ -1422,6 +1422,8 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
 
 FactorWriterIndex::~FactorWriterIndex()
 {
+    uint64_t i;
+
     // Write the total number of factors
     bwriter->int_to_binary(numfacs, sizeof(uint64_t)*8);
     // Write the total number of sequences + 1
@@ -1438,19 +1440,31 @@ FactorWriterIndex::~FactorWriterIndex()
 
     // Write out the positions
     Array posarray(numfacs, refseqlen);
-    for (uint64_t i=0; i<numfacs; i++)
+    for (i=0; i<numfacs; i++)
     {
         posarray.setField(i, get_field_64(positions, logrefseqlen, i));
     }
     posarray.save(outfile);
     cout << "positions: " << posarray.getSize() << endl;
 
+    // Construct suffix tree
+    char *sequence = new char[refseqlen+1];
+    for (i=0; i<refseqlen; i++)
+        sequence[i] = int_to_nucl[refseq->getField(i)];
+    sequence[i] = '\0';
+    SuffixTreeY sty(sequence, refseqlen+1);
+    sty.save(outfile);
+    cout << "st: " << sty.getSize() << endl;
+    delete [] sequence;
+
+    /*
     // Write out the suffix array
     sa->save(outfile);
     cout << "sa: " << sa->getSize() << endl;
+    */
 
     // Write out the cumulative sequence lengths
-    for (uint64_t i=0; i<cumseqlens.size(); i++)
+    for (i=0; i<cumseqlens.size(); i++)
         outfile.write((const char*)&cumseqlens.at(i), sizeof(uint64_t));
     cout << "cumseqlens: " << cumseqlens.size()*sizeof(uint64_t) << endl;
 

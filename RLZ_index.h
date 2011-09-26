@@ -29,8 +29,7 @@
 #include <Array.h>
 #include <BitSequenceSDArray.h>
 #include <BitSequence.h>
-#include <Mapper.h>
-#include <Sequence.h>
+#include <SuffixTree.h>
 
 typedef struct occurrence
 {
@@ -134,6 +133,9 @@ class RLZ_index
         /* Locate related data structures and methods                        */
         /*-------------------------------------------------------------------*/
 
+        // Suffix tree of the reference sequence
+        cds_static::SuffixTree *st;
+
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
 
@@ -160,14 +162,25 @@ class RLZ_index
                         vector<occ_t>& occs, bool iscount=false);
 
         /** Returns the boundaries of the suffix array that contains the
-         * given pattern. cl and cr are set to (uint64_t)-1 if pattern
+         * given pattern. lb and rb are set to (uint64_t)-1 if pattern
          * does not occur in the suffix array.
          * @param pattern Pattern to search for
-         * @param cl Variable to store the return left boundary
-         * @param cr Variable to sotre the return right boundary
+         * @param lb Variable to store the return left boundary
+         * @param rb Variable to store the return right boundary
          */
-        void sa_binary_search(cds_utils::Array &pattern, uint64_t *cl,
-                              uint64_t *cr);
+        void sa_binary_search(cds_utils::Array &pattern, uint64_t *lb,
+                              uint64_t *rb);
+
+
+        /** Searches the suffix tree for the given pattern and returns
+         * the suffix array range.
+         * @param pattern Pattern to search for
+         * @param ptnlen Length of the pattern being searched for
+         * @param lb Variable to store the return left boundary
+         * @param rb Variable to store the return right boundary
+         */
+        void st_search(unsigned char *pattern, unsigned int ptnlen, 
+                       uint64_t& lb, uint64_t& rb);
 
         /** Returns the boundaries of a level in the nested level list
          * that contains the given interval represented by the variables
