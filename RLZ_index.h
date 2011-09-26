@@ -152,6 +152,7 @@ class RLZ_index
         /** Implements the search functionality.
          * @param pattern Pattern to search for
          * @param ptnlen Length of the pattern being searched for
+         * @param occs Vector to store occurrences if iscount=false
          * @param iscount True if just counting the occurrence, false otherwise
          * @return Number of occurrences of the pattern
          */
