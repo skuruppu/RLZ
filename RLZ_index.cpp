@@ -103,7 +103,6 @@ RLZ_index::RLZ_index(char *filename) :
 
     // Create a compact array to store the positions
     positions = new Array(idxfile);
-    //positions = WaveletTreeNoptrs::load(idxfile);
 
     // Read in the suffix array
     sa = new Array(idxfile);
@@ -138,6 +137,11 @@ RLZ_index::~RLZ_index()
     delete positions;
     delete facstarts;
     delete [] cumseqlens;
+    delete sa;
+    delete nll;
+    delete [] levelidx;
+    delete isstart;
+    delete isend;
 }
 
 void RLZ_index::decode()
@@ -174,7 +178,6 @@ void RLZ_index::decode()
                 len = facstarts->select1(j+2) - facstarts->select1(j+1);
             // Standard factor decoding
             outfile << positions->getField(j) << ' ';
-            //outfile << positions->access(j) << ' ';
             // Print the length
             outfile << len << endl;
         }
@@ -269,7 +272,6 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
 
     // Just a standard factor
     p = positions->getField(rk-1);
-    //p = positions->access(rk-1);
     // A substring of Ns
     if (p == refseqlen)
     {
@@ -304,7 +306,6 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
 
             // Just a standard factor
             p = positions->getField(rk-1);
-            //p = positions->access(rk-1);
 
             // A substring of Ns
             if (p == refseqlen)

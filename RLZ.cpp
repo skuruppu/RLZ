@@ -1443,16 +1443,6 @@ FactorWriterIndex::~FactorWriterIndex()
     posarray.save(outfile);
     cout << "positions: " << posarray.getSize() << endl;
 
-    /*
-    Mapper * mapper = new MapperCont(posarray, BitSequenceBuilderRG(20));
-    mapper->use();
-    WaveletTreeNoptrs wt(posarray, new BitSequenceBuilderRRR(32), mapper);
-    mapper->unuse();
-
-    wt.save(outfile);
-    cout << "positions: " << wt.getSize() << endl;
-    */
-
     // Write out the suffix array
     sa->save(outfile);
     cout << "sa: " << sa->getSize() << endl;
@@ -1467,6 +1457,7 @@ FactorWriterIndex::~FactorWriterIndex()
     nll->save(outfile);
     outfile.write((char*)&numlevels, sizeof(uint32_t));
     outfile.write((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
+    cout << "nll: " << nll->getSize()+(numlevels+1)*sizeof(uint32_t) << endl;
 
     // Create the compressed bit vector for isstart and isend
     BitSequenceRRR compisstart(*isstart);
