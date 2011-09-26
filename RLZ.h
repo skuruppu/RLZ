@@ -50,7 +50,7 @@ class FactorWriter
                                   bool lissfac) {}
 
         /** Finalise any writing that hasn't completed yet. */
-        virtual void finalise();
+        virtual void end_of_sequence();
 
     protected:
 
@@ -118,7 +118,7 @@ class FactorWriterText : public FactorWriter
         void write_factor(uint64_t pos, uint64_t len, bool lissfac);
 
         /** Finalise any writing that hasn't completed yet. */
-        void finalise();
+        void end_of_sequence();
 
     private:
         
@@ -163,7 +163,7 @@ class FactorWriterBinary : public FactorWriter
         void write_factor(uint64_t pos, uint64_t len, bool lissfac);
 
         /** Finalise any writing that hasn't completed yet. */
-        void finalise();
+        void end_of_sequence();
 
     private:
 
@@ -205,7 +205,10 @@ class FactorWriterIndex : public FactorWriter
         void write_factor(uint64_t pos, uint64_t len);
 
         /** Finalise any writing that hasn't completed yet. */
-        void finalise();
+        void end_of_sequence();
+
+        /** Write the index out to disk. */
+        void write_index();
 
     private:
 

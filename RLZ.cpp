@@ -304,6 +304,7 @@ void RLZCompress::compress()
 
     if (encoding == 'i')
     {
+        ((FactorWriterIndex*)facwriter)->write_index();
         delete facwriter;
         outfile.close();
     }
@@ -388,7 +389,7 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
     }
 
     // Call this to indicate the end of input to the factor writer
-    facwriter.finalise();
+    facwriter.end_of_sequence();
 }
 
 void RLZCompress::relative_LZ_factorise(ifstream& infile, 
@@ -776,7 +777,7 @@ void FactorWriter::write_factor(uint64_t pos, uint64_t len)
     facwriter->write_factor(pos, len);
 }
 
-void FactorWriter::finalise()
+void FactorWriter::end_of_sequence()
 {
     vector<uint64_t> liss;
     uint64_t i, j;
@@ -823,7 +824,7 @@ void FactorWriter::finalise()
         }
     }
 
-    facwriter->finalise();
+    facwriter->end_of_sequence();
 }
 
 FactorWriter::~FactorWriter()
@@ -968,7 +969,7 @@ void FactorWriterText::write_factor(uint64_t pos, uint64_t len,
     write_factor(pos, len);
 }
 
-void FactorWriterText::finalise()
+void FactorWriterText::end_of_sequence()
 {
 
 }
@@ -1115,7 +1116,7 @@ void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len,
     write_factor(pos, len);
 }
 
-void FactorWriterBinary::finalise()
+void FactorWriterBinary::end_of_sequence()
 {
     bwriter->flush();
 }
@@ -1420,7 +1421,7 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
     currseqfacnum = 0;
 }
 
-FactorWriterIndex::~FactorWriterIndex()
+void FactorWriterIndex::write_index()
 {
     uint64_t i;
 
@@ -1492,9 +1493,16 @@ FactorWriterIndex::~FactorWriterIndex()
     BitSequenceSDArray compseqstarts(seqstarts);
     compseqstarts.save(outfile);
     cout << "compseqstarts: " << compseqstarts.getSize() << endl;
+}
 
+FactorWriterIndex::~FactorWriterIndex()
+{
     delete bwriter;
-    delete positions;
+    delete [] positions;
+    delete nll;
+    delete [] levelidx;
+    delete isstart;
+    delete isend;
 }
 
 void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
@@ -1530,7 +1538,7 @@ void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
     currseqfacnum++;
 }
 
-void FactorWriterIndex::finalise()
+void FactorWriterIndex::end_of_sequence()
 {
     // Store the cumulative length of this sequence
     cumseqlens.push_back(cumseqlens.back()+cumlen);
