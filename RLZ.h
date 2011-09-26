@@ -239,6 +239,10 @@ class FactorWriterIndex : public FactorWriter
         uint32_t *levelidx;
         uint32_t numlevels;
 
+		// Bit vectors to store which positions factors start and end at
+		cds_utils::BitString *isstart;
+		cds_utils::BitString *isend;
+
         void construct_nested_level_list(cds_static::BitSequenceSDArray&
                                          facstartssdarray);
 };

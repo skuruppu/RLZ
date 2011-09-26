@@ -120,6 +120,10 @@ RLZ_index::RLZ_index(char *filename) :
     levelidx = new uint32_t[numlevels+1];
     idxfile.read((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
 
+    // Read the isstart and isend bit vectors
+    isstart = BitSequenceRRR::load(idxfile);
+    isend = BitSequenceRRR::load(idxfile);
+
     // Calculate the log of the reference sequence length
     refseqlen = refseq->getLength()-1; // length includes null byte
     uint64_t i = floor(log2(refseqlen));
@@ -485,6 +489,9 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         for (l=lb; l<=rb; l++)
         {
             pos = sa->getField(l);
+            // Ignore start positions at which factors don't start
+            if (!isstart->access(pos))
+                continue;
             for (j=0; j<numlevels; j++)
             {
                 poslb = levelidx[j]; posrb = levelidx[j+1] - 1;
@@ -550,6 +557,9 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         for (l=lb; l<=rb; l++)
         {
             pos = sa->getField(l);
+            // Ignore end positions at which factors don't end
+            if (!isend->access(pos+pfxlen))
+                continue;
             for (j=0; j<numlevels; j++)
             {
                 poslb = levelidx[j]; posrb = levelidx[j+1] - 1;
@@ -1119,8 +1129,14 @@ int RLZ_index::size()
          << (unsigned int)nll->getSize() + 
             (numlevels+1)*sizeof(uint32_t)
          << " bytes\n";
+    // Contents of isstart and isend
+    size += (unsigned int)isstart->getSize();
+    cerr << "isstart: " << (unsigned int)isstart->getSize() << " bytes\n";
+    size += (unsigned int)isend->getSize();
+    cerr << "isstart: " << (unsigned int)isend->getSize() << " bytes\n";
     // Size of the sa and nll variables
     size += (sizeof(sa)+sizeof(nll)+sizeof(levelidx)+sizeof(numlevels));
+    size += (sizeof(isstart)+sizeof(isend));
     totalsize += size;
 
     cerr << "-----\n";

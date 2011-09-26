@@ -136,6 +136,11 @@ class RLZ_index
         uint32_t *levelidx;
         uint32_t numlevels;
 
+        // Compressed bit vectors to indicate at which positions in the
+        // reference sequence factors start and end at
+        cds_static::BitSequenceRRR *isstart;
+        cds_static::BitSequenceRRR *isend;
+
         /** Implements the search functionality.
          * @param pattern Pattern to search for
          * @param ptnlen Length of the pattern being searched for

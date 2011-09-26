@@ -1,5 +1,6 @@
 #include <divsufsort64.h>
 #include <BitSequenceSDArray.h>
+#include <BitSequenceRRR.h>
 #include "RLZ.h"
 #include "alphabet.h"
 
@@ -1412,6 +1413,9 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
 
     posarraylen = 1000;
     positions = new unsigned int[posarraylen];
+
+	isstart = new BitString(refseqlen);
+	isend = new BitString(refseqlen);
 }
 
 FactorWriterIndex::~FactorWriterIndex()
@@ -1426,7 +1430,7 @@ FactorWriterIndex::~FactorWriterIndex()
     cout << "refseq: " << refseq->getSize() << endl;
 
     // Create the compressed bit vector and write it
-    BitSequenceSDArray compfacstarts = BitSequenceSDArray(facstarts);
+    BitSequenceSDArray compfacstarts(facstarts);
     compfacstarts.save(outfile);
     cout << "facstarts: " << compfacstarts.getSize() << endl;
 
@@ -1458,14 +1462,20 @@ FactorWriterIndex::~FactorWriterIndex()
         outfile.write((const char*)&cumseqlens.at(i), sizeof(uint64_t));
     cout << "cumseqlens: " << cumseqlens.size()*sizeof(uint64_t) << endl;
 
+	// Construct and write the nested level list
     construct_nested_level_list(compfacstarts);
     nll->save(outfile);
     outfile.write((char*)&numlevels, sizeof(uint32_t));
     outfile.write((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
 
-    //outfile.write((const char*)&positions, (numfacs*logrefseqlen/8)+1);
-    //cout << "positions: " << (numfacs*logrefseqlen/8)+1 << endl;
-    
+    // Create the compressed bit vector for isstart and isend
+    BitSequenceRRR compisstart(*isstart);
+    BitSequenceRRR compisend(*isend);
+    compisstart.save(outfile);
+    compisend.save(outfile);
+    cout << "isstart: " << compisstart.getSize() << endl;
+    cout << "isend: " << compisend.getSize() << endl;
+
     delete bwriter;
     delete positions;
 }
@@ -1491,6 +1501,12 @@ void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
         posarraylen *= 2;
     }
     set_field_64(positions, logrefseqlen, numfacs, pos);
+
+	if (pos != refseqlen)
+	{
+		isstart->setBit(pos);
+		isend->setBit(pos+len);
+	}
 
     cumlen += len;
     numfacs++;
