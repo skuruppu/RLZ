@@ -449,6 +449,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // occurrences
         occurrences += (rb - lb + 1);
 
+        // Store the seq,pos pairs at which the pattern occurs
         if (!iscount)
         {
             for (i=lb; i<=rb; i++)
@@ -474,6 +475,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
 
                 occurrences += (posrb - poslb + 1);
 
+                // Store the seq,pos pairs at which the pattern occurs
                 if (!iscount)
                 {
                     for (k=poslb; k<=posrb; k++)
@@ -556,6 +558,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     {
                         occurrences ++; 
 
+                        // Store the seq,pos pairs at which the pattern
+                        // occurs
                         if (!iscount)
                         {
                             seq = seqfacstart->rank1(facidx);
@@ -635,6 +639,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     {
                         occurrences ++; 
 
+                        // Store the seq,pos pairs at which the pattern
+                        // occurs
                         if (!iscount)
                         {
                             seq = seqfacstart->rank1(facidx-1);
