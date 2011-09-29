@@ -63,8 +63,8 @@ int main (int argc, char **argv)
 
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
-    rlzidx->size();
-    rlzidx->locate();
+    //rlzidx->size();
+    rlzidx->display();
 
     return 0; 
 }
@@ -234,11 +234,9 @@ void RLZ_index::display()
         
     }
 
-    cerr << '\n';
-    cerr << "Total factors: " << numfacs << '\n';
     cerr << "Total queries: " << totalqueries << '\n';
     cerr << "Total chars: " << totalchars << '\n';
-    cerr << "Total time: " << (float)totaltime/totalchars << " microsecs/char\n";
+    cerr << "Total time: " << (float)totaltime/totalchars << " microsecs/char\n\n";
     return;
 }
 
