@@ -59,7 +59,7 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->displayonly = displayonly;
     this->st = NULL;
 
-    read_refseq_and_sa();
+    read_refseq_and_construct_sa();
 }
 
 RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
@@ -135,6 +135,50 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     // Calculate the log of the reference sequence length
     uint64_t i = floor(log2(refseqlen));
     logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
+}
+
+void RLZCompress::read_refseq_and_construct_sa()
+{
+    uint64_t i;
+
+    initialise_nucl_converters();
+
+    // Read reference sequence into memory since its needed by
+    // suffix tree constructor
+    char *sequence = NULL;
+    if (loadText(filenames[0], &sequence, &refseqlen))
+    {
+        cerr << "Couldn't read reference sequence.\n";
+        exit(1);
+    }
+    // loadText places an extra byte at the end
+    refseqlen--;
+
+    // Read the reference sequence
+    refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
+    store_sequence(sequence, filenames[0], refseq, refseqlen);
+
+    // Construct suffix array
+    uint64_t *sufarray = new uint64_t[refseqlen+1];
+    if (divsufsort64((sauchar_t*)sequence, (saidx64_t*)sufarray,
+        refseqlen+1) < 0)
+    {
+        cerr << "Error in constructing suffix array.\n";
+        exit(1);
+    }
+
+    sa = new Array(refseqlen+1, refseqlen);
+    for (i=0; i<=refseqlen; i++)
+    {
+        sa->setField(i, sufarray[i]);
+    }
+
+    // Calculate the log of the reference sequence length
+    i = floor(log2(refseqlen));
+    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
+
+    delete [] sequence;
+    delete [] sufarray;
 }
 
 void RLZCompress::read_refseq_and_sa()

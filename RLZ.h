@@ -500,6 +500,10 @@ class RLZCompress : RLZ
 
         /** Read the reference sequence and construct the suffix array
          */
+        void read_refseq_and_construct_sa();
+
+        /** Read the reference sequence and construct the suffix array
+         */
         void read_refseq_and_sa();
 
         /** Conducts the relative Lempel-Ziv compression of the sequence
