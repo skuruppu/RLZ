@@ -89,8 +89,8 @@ RLZ_index::RLZ_index(char *filename) :
 
     // Read the meta data
     BitReader breader = BitReader(idxfile);
-    numfacs = breader.binary_to_int(sizeof(uint64_t)*8);
-    numseqs = breader.binary_to_int(sizeof(uint64_t)*8);
+    //numfacs = breader.binary_to_int(sizeof(uint64_t)*8);
+    //numseqs = breader.binary_to_int(sizeof(uint64_t)*8);
 
     // Read the reference sequence
     refseq = new Array(idxfile);
@@ -107,7 +107,9 @@ RLZ_index::RLZ_index(char *filename) :
     // Read the cumulative sequence lengths
     cumseqlens = new Array(idxfile);
 
-    // Calculate the log of the reference sequence length
+    // Calculate the index variables
+    numfacs = positions->getLength();
+    numseqs = cumseqlens->getLength()-1;
     refseqlen = refseq->getLength()-1; // length includes null byte
     uint64_t i = floor(log2(refseqlen));
     logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;

@@ -60,8 +60,6 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->displayonly = displayonly;
     this->st = NULL;
 
-    read_refseq_and_construct_sa();
-
     /*
     // Construct the compressed suffix array
     // Read reference sequence into memory since its needed by
@@ -79,10 +77,13 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     ofstream ofile("tmp", ofstream::out);
     csa->save(ofile);
     ofile.close();
+
     delete [] sequence;
     delete csa;
-    exit(1);
     */
+
+    read_refseq_and_construct_sa();
+
 }
 
 RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
@@ -1544,11 +1545,6 @@ void FactorWriterIndex::write_index()
     // First write the data structure that are just necessary to answer
     // display() queries
     
-    // Write the total number of factors
-    bwriter->int_to_binary(numfacs, sizeof(uint64_t)*8);
-    // Write the total number of sequences + 1
-    bwriter->int_to_binary(cumseqlens.size()-1, sizeof(uint64_t)*8);
-
     // Write the reference sequence
     refseq->save(outfile);
     cout << "refseq: " << refseq->getSize() << endl;
@@ -1590,10 +1586,13 @@ void FactorWriterIndex::write_index()
         for (i=0; i<refseqlen; i++)
             sequence[i] = int_to_nucl[refseq->getField(i)];
         sequence[i] = '\0';
-        TextIndexCSA *ti = new TextIndexCSA((uchar*)sequence, refseqlen+1, NULL);
-        ti->save(outfile);
-        cout << "csa: " << ti->getSize() << endl;
+        TextIndexCSA *csa = new TextIndexCSA((uchar*)sequence, refseqlen+1, NULL);
+        csa->save(outfile);
+        cout << "csa: " << csa->getSize() << endl;
+        delete [] sequence;
+        delete csa;
         */
+
         /*
         // Construct suffix tree
         SuffixTreeY sty(sequence, refseqlen+1);
