@@ -269,7 +269,7 @@ class FactorWriterIndex : public FactorWriter
 
         // Nested level lists of the sorted factors
         cds_utils::Array *nll;
-        uint32_t *levelidx;
+        cds_utils::Array *levelidx;
         uint32_t numlevels;
 
         // Sequence start positions in factors

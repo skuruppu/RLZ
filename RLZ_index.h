@@ -145,7 +145,7 @@ class RLZ_index
 
         // Nested level lists of the sorted factors
         cds_utils::Array *nll;
-        uint32_t *levelidx;
+        cds_utils::Array *levelidx;
         uint32_t numlevels;
 
         // Compressed bit vectors to indicate at which positions in the

@@ -64,7 +64,7 @@ int main (int argc, char **argv)
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
     rlzidx->size();
-    rlzidx->count();
+    rlzidx->display();
 
     return 0; 
 }
@@ -135,9 +135,8 @@ RLZ_index::RLZ_index(char *filename) :
 
     // Read the nested level list and level index
     nll = new Array(idxfile);
-    idxfile.read((char*)&numlevels, sizeof(uint32_t));
-    levelidx = new uint32_t[numlevels+1];
-    idxfile.read((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
+    levelidx = new Array(idxfile);
+    numlevels = levelidx->getLength()-1;
 
     // Read the isend bit vectors
     isend = BitSequenceRRR::load(idxfile);
@@ -493,7 +492,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
             //pos = st->Locate(i,i);
             for (j=0; j<numlevels; j++)
             {
-                poslb = levelidx[j]; posrb = levelidx[j+1] - 1;
+                poslb = levelidx->getField(j); 
+                posrb = levelidx->getField(j+1) - 1;
                 facs_binary_search(pos, pos+ptnlen, &poslb, &posrb);
                 if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
                     continue;
@@ -557,7 +557,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                 continue;
             for (j=0; j<numlevels; j++)
             {
-                poslb = levelidx[j]; posrb = levelidx[j+1] - 1;
+                poslb = levelidx->getField(j);
+                posrb = levelidx->getField(j+1) - 1;
                 factor_start_binary_search(pos, &poslb, &posrb);
                 if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
                     continue;
@@ -670,7 +671,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                 continue;
             for (j=0; j<numlevels; j++)
             {
-                poslb = levelidx[j]; posrb = levelidx[j+1] - 1;
+                poslb = levelidx->getField(j);
+                posrb = levelidx->getField(j+1) - 1;
                 factor_end_binary_search(pos+pfxlen, &poslb, &posrb);
                 if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
                     continue;
@@ -1303,11 +1305,9 @@ int RLZ_index::size()
 		//size += (unsigned int)st->getSize();
 		//cerr << "suffix tree: " << (unsigned int)st->getSize() << " bytes\n";
 		// Contents of nested level lists
-		size += ((unsigned int)nll->getSize() +
-				 (numlevels+1)*sizeof(uint32_t));
+		size += ((unsigned int)nll->getSize() + (unsigned int)levelidx->getSize());
 		cerr << "nested level lists: "
-			 << (unsigned int)nll->getSize() + 
-				(numlevels+1)*sizeof(uint32_t)
+			 << (unsigned int)nll->getSize() + levelidx->getSize()
 			 << " bytes\n";
 		// Contents of isend
 		size += (unsigned int)isend->getSize();

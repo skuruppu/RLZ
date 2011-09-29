@@ -1609,8 +1609,7 @@ void FactorWriterIndex::write_index()
         // Construct and write the nested level list
         construct_nested_level_list(compfacstarts);
         nll->save(outfile);
-        outfile.write((char*)&numlevels, sizeof(uint32_t));
-        outfile.write((char*)levelidx, (numlevels+1)*sizeof(uint32_t));
+        levelidx->save(outfile);
         cout << "nll: " << nll->getSize()+(numlevels+1)*sizeof(uint32_t);
         cout << endl;
 
@@ -1634,7 +1633,7 @@ FactorWriterIndex::~FactorWriterIndex()
     if (!displayonly)
     {
         if (nll) delete nll;
-        if (levelidx) delete [] levelidx;
+        if (levelidx) delete levelidx;
         delete isend;
     }
 }
@@ -1817,9 +1816,8 @@ void FactorWriterIndex::construct_nested_level_list
 
     // Allocate memory for storing the indices of the positions for each
     // nested level 
-    // Calculate the log of the reference sequence length
     nll = new Array(sortedpositions.size(), numfacs-1);
-    levelidx = new uint32_t[nestedlevels.size()+1];
+    levelidx = new Array(nestedlevels.size()+1, sortedpositions.size());
     numlevels = nestedlevels.size();
 
     k = 0;
@@ -1828,7 +1826,7 @@ void FactorWriterIndex::construct_nested_level_list
     // level
     for (i=0; i<numlevels; i++)
     {
-        levelidx[i] = cumlen;
+        levelidx->setField(i,cumlen);
         cumlen += nestedlevels[i].size();
         for (j=0; j<nestedlevels[i].size(); j++,k++)
         {
@@ -1839,6 +1837,6 @@ void FactorWriterIndex::construct_nested_level_list
     // Have one more than the length of the reference sequence such that
     // levelidx[j+1] - levelidx[j] = number of factors that are in that
     // level
-    levelidx[i] = cumlen;
+    levelidx->setField(i,cumlen);
 
 }
