@@ -63,8 +63,8 @@ int main (int argc, char **argv)
 
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
-    //rlzidx->size();
-    rlzidx->display();
+    rlzidx->size();
+    rlzidx->count();
 
     return 0; 
 }
@@ -129,6 +129,9 @@ RLZ_index::RLZ_index(char *filename) :
 
     // Read in the suffix array
     sa = new Array(idxfile);
+
+    // Read in the compressed suffix array
+    //sa = TextIndex::load(idxfile);
 
     // Read in the suffix tree
     //st = SuffixTree::load(idxfile);
@@ -474,6 +477,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
             {
                 occ.seq = 0;
                 occ.pos = sa->getField(i);
+                //occ.pos = sa->getSA(i);
                 //occ.pos = st->Locate(i,i);
                 occs.push_back(occ);
             }
@@ -485,6 +489,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
             // Look for factors that contain this interval in all levels
             // of the nll
             pos = sa->getField(i);
+            //pos = sa->getSA(i);
             //pos = st->Locate(i,i);
             for (j=0; j<numlevels; j++)
             {
@@ -545,6 +550,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         for (l=lb; l<=rb; l++)
         {
             pos = sa->getField(l);
+            //pos = sa->getSA(l);
             //pos = st->Locate(l, l);
             // Ignore start positions at which factors don't start
             if (!isstart->access(pos))
@@ -657,6 +663,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         for (l=lb; l<=rb; l++)
         {
             pos = sa->getField(l);
+            //pos = sa->getSA(l);
             //pos = st->Locate(l, l);
             // Ignore end positions at which factors don't end
             if (!isend->access(pos+pfxlen))
@@ -733,6 +740,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
             mid = (low + high) >> 1;
 
             midval = refseq->getField(sa->getField(mid)+i);
+            //midval = refseq->getField(sa->getSA(mid)+i);
             // Move left boundary to the middle
             if (midval < c)
                 low = mid + 1;
@@ -748,6 +756,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
                     break;
                 }
                 midvalleft = refseq->getField(sa->getField(mid-1)+i);
+                //midvalleft = refseq->getField(sa->getSA(mid-1)+i);
                 // Discard mid and values to the right of mid
                 if(midvalleft == midval)
                     high = mid - 1;
@@ -776,6 +785,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
 
 
             midval = refseq->getField(sa->getField(mid)+i);
+            //midval = refseq->getField(sa->getSA(mid)+i);
             // Move left bounary to the middle
             if (midval < c)
                 low = mid + 1;
@@ -791,6 +801,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
                     break;
                 }
                 midvalright = refseq->getField(sa->getField(mid+1)+i);
+                //midvalright = refseq->getField(sa->getSA(mid+1)+i);
                 // Discard mid and the ones to the left of mid
                 if(midvalright == midval)
                     low = mid + 1; 

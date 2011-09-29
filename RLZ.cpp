@@ -25,6 +25,7 @@
 #include <divsufsort64.h>
 #include <BitSequenceSDArray.h>
 #include <BitSequenceRRR.h>
+#include <TextIndexCSA.h>
 #include "RLZ.h"
 #include "alphabet.h"
 
@@ -60,6 +61,28 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->st = NULL;
 
     read_refseq_and_construct_sa();
+
+    /*
+    // Construct the compressed suffix array
+    // Read reference sequence into memory since its needed by
+    // suffix tree constructor
+    char *sequence = NULL;
+    size_t seqlen;
+    if (loadText(filenames[0], &sequence, &seqlen))
+    {
+        cerr << "Couldn't read reference sequence.\n";
+        exit(1);
+    }
+    TextIndexCSA *csa = new TextIndexCSA((uchar*)sequence, seqlen, NULL);
+    cout << csa->getSize() << endl;
+
+    ofstream ofile("tmp", ofstream::out);
+    csa->save(ofile);
+    ofile.close();
+    delete [] sequence;
+    delete csa;
+    exit(1);
+    */
 }
 
 RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
@@ -1545,7 +1568,8 @@ void FactorWriterIndex::write_index()
     Array posarray(numfacs, compisstart.rank1(refseqlen));
     for (i=0; i<numfacs; i++)
     {
-        posarray.setField(i, compisstart.rank1(get_field_64(positions, logrefseqlen, i))-1);
+        posarray.setField(i, compisstart.rank1(get_field_64(positions,
+                          logrefseqlen, i))-1);
     }
     posarray.save(outfile);
     cout << "positions: " << posarray.getSize() << endl;
@@ -1560,11 +1584,16 @@ void FactorWriterIndex::write_index()
     if (!displayonly)
     {
         /*
-        // Construct suffix tree
         char *sequence = new char[refseqlen+1];
         for (i=0; i<refseqlen; i++)
             sequence[i] = int_to_nucl[refseq->getField(i)];
         sequence[i] = '\0';
+        TextIndexCSA *ti = new TextIndexCSA((uchar*)sequence, refseqlen+1, NULL);
+        ti->save(outfile);
+        cout << "csa: " << ti->getSize() << endl;
+        */
+        /*
+        // Construct suffix tree
         SuffixTreeY sty(sequence, refseqlen+1);
         sty.save(outfile);
         cout << "st: " << sty.getSize() << endl;

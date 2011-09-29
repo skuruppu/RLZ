@@ -28,6 +28,7 @@
 #include <BitSequenceSDArray.h>
 #include <BitSequence.h>
 #include <SuffixTree.h>
+#include <TextIndex.h>
 
 typedef struct occurrence
 {
@@ -140,6 +141,7 @@ class RLZ_index
 
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
+        //cds_static::TextIndex *sa;
 
         // Nested level lists of the sorted factors
         cds_utils::Array *nll;
