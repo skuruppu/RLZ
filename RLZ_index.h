@@ -94,7 +94,7 @@ class RLZ_index
         cds_static::BitSequenceSDArray *facstarts;
 
         /* Sequence cumseqlens for numseqs sequences */
-        uint64_t *cumseqlens;
+        cds_utils::Array *cumseqlens;
 
         /** Reads the reference sequence into memory and fills in the
          * refseqlen and refseq variables. Also creates the suffix array

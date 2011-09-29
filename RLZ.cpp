@@ -1547,7 +1547,7 @@ void FactorWriterIndex::write_index()
     // Write the total number of factors
     bwriter->int_to_binary(numfacs, sizeof(uint64_t)*8);
     // Write the total number of sequences + 1
-    bwriter->int_to_binary(cumseqlens.size(), sizeof(uint64_t)*8);
+    bwriter->int_to_binary(cumseqlens.size()-1, sizeof(uint64_t)*8);
 
     // Write the reference sequence
     refseq->save(outfile);
@@ -1575,9 +1575,11 @@ void FactorWriterIndex::write_index()
     cout << "positions: " << posarray.getSize() << endl;
 
     // Write out the cumulative sequence lengths
+    Array cumseqlensarray(cumseqlens.size(), cumseqlens.back());
     for (i=0; i<cumseqlens.size(); i++)
-        outfile.write((const char*)&cumseqlens.at(i), sizeof(uint64_t));
-    cout << "cumseqlens: " << cumseqlens.size()*sizeof(uint64_t) << endl;
+        cumseqlensarray.setField(i, cumseqlens.at(i));
+    cumseqlensarray.save(outfile);
+    cout << "cumseqlens: " << cumseqlensarray.getSize() << endl;
 
     // Write out the data structures necessary to implement count() and
     // locate() queries

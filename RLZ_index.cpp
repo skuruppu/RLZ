@@ -105,10 +105,7 @@ RLZ_index::RLZ_index(char *filename) :
     positions = new Array(idxfile);
 
     // Read the cumulative sequence lengths
-    cumseqlens = new uint64_t[numseqs];
-    //idxfile.read((char*)&cumseqlens, numseqs*sizeof(uint64_t));
-    for (uint64_t i=0; i<numseqs; i++)
-        idxfile.read((char*)&cumseqlens[i], sizeof(uint64_t));
+    cumseqlens = new Array(idxfile);
 
     // Calculate the log of the reference sequence length
     refseqlen = refseq->getLength()-1; // length includes null byte
@@ -157,7 +154,7 @@ RLZ_index::~RLZ_index()
     delete isstart;
     delete positions;
     delete facstarts;
-    delete [] cumseqlens;
+    delete cumseqlens;
     if (!displayonly)
     {
         delete sa;
@@ -177,7 +174,7 @@ void RLZ_index::decode()
     outfile.open(filename, ofstream::out);
 
     j = 0;
-    for (i=0; i<numseqs-2; i++)
+    for (i=0; i<numseqs-1; i++)
     {
         // Compressed sequence filenames start at index 1
         //sprintf(filename, "%s.dec", filenames[i+1]);
@@ -187,16 +184,18 @@ void RLZ_index::decode()
         // current sequence being decoded
         // Special case since facstarts->rank1(cumseqlens[i+1]-1) would result 
         // in a seg fault
-        if (cumseqlens[i+1] == 0)
-            maxfacnum = j + facstarts->rank1(cumseqlens[i+2]-1);
+        if (cumseqlens->getField(i+1) == 0)
+            maxfacnum = j +
+                        facstarts->rank1(cumseqlens->getField(i+2)-1);
         else
-            maxfacnum = j + facstarts->rank1(cumseqlens[i+2]-1) - 
-                        facstarts->rank1(cumseqlens[i+1]-1);
+            maxfacnum = j +
+                        facstarts->rank1(cumseqlens->getField(i+2)-1) -
+                        facstarts->rank1(cumseqlens->getField(i+1)-1);
         for (; j<maxfacnum; j++)
         {
             // Get the length of the factor
             if (j+1 == numfacs)
-                len = cumseqlens[numseqs+1] - facstarts->select1(j+1);
+                len = cumseqlens->getField(numseqs+1) - facstarts->select1(j+1);
             else
                 len = facstarts->select1(j+2) - facstarts->select1(j+1);
             // Standard factor decoding
@@ -271,7 +270,8 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
         return (msec2 - msec1);
     }
 
-    return display(cumseqlens[seq]+start, cumseqlens[seq]+end, substring);
+    return display(cumseqlens->getField(seq)+start,
+                   cumseqlens->getField(seq)+end, substring);
 }
 
 long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
@@ -287,7 +287,7 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
     rk = facstarts->rank1(start);
     b = facstarts->select1(rk);
     if (rk == numfacs)
-        l = cumseqlens[numseqs-1] - b;
+        l = cumseqlens->getField(numseqs) - b;
     else
         l = facstarts->select1(rk+1) - b;
 
@@ -321,7 +321,7 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
             rk ++;
             b = facstarts->select1(rk);
             if (rk == numfacs)
-                l = cumseqlens[numseqs-1] - b;
+                l = cumseqlens->getField(numseqs) - b;
             else
                 l = facstarts->select1(rk+1) - b;
 
@@ -510,7 +510,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                         abspos = facstarts->select1(facidx+1)
                                  + (pos - isstart->select1(
                                  positions->getField(facidx))+1);
-                        occpos = abspos - cumseqlens[seq];
+                        occpos = abspos - cumseqlens->getField(seq);
                         occ.seq = seq; occ.pos = occpos;
                         occs.push_back(occ);
                     }
@@ -594,7 +594,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                         {
                             seq = seqfacstart->rank1(facidx);
                             occpos = facstarts->select1(facidx+2)
-                                     - pfxlen - cumseqlens[seq];
+                                     - pfxlen - cumseqlens->getField(seq);
                             occ.seq = seq; occ.pos = occpos;
                             occs.push_back(occ);
                         }
@@ -707,7 +707,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                         {
                             seq = seqfacstart->rank1(facidx-1);
                             occpos = facstarts->select1(facidx+1)
-                                     - pfxlen - cumseqlens[seq];
+                                     - pfxlen - cumseqlens->getField(seq);
                             occ.seq = seq; occ.pos = occpos;
                             occs.push_back(occ);
                         }
@@ -1228,7 +1228,8 @@ void RLZ_index::st_search(unsigned char *pattern, unsigned int ptnlen,
 inline uint64_t RLZ_index::factor_length(uint32_t facidx)
 {
     if (facidx+1 == numfacs)
-        return cumseqlens[numseqs] - facstarts->select1(facidx+1);
+        return cumseqlens->getField(numseqs+1) -
+               facstarts->select1(facidx+1);
         
     return facstarts->select1(facidx+2) - facstarts->select1(facidx+1);
 }
@@ -1280,8 +1281,8 @@ int RLZ_index::size()
     size += (facstarts->getSize());
     cerr << "facstarts: " << (unsigned int)facstarts->getSize() << " bytes\n";
     // Contents of cumseqlens
-    size += numseqs*sizeof(uint64_t);
-    cerr << "cumseqlens: " << numseqs*sizeof(uint64_t) << " bytes\n";
+    size += (numseqs+1)*sizeof(uint64_t);
+    cerr << "cumseqlens: " << (numseqs+1)*sizeof(uint64_t) << " bytes\n";
     // Size of the pointers
     size += (sizeof(cumseqlens)+sizeof(facstarts));
     // Size of the numseqs and numfacs variables
