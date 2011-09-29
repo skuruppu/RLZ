@@ -1501,10 +1501,10 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
 
     posarraylen = 1000;
     positions = new unsigned int[posarraylen];
+    isstart = new BitString(refseqlen+1);
 
     if (!displayonly)
     {
-        isstart = new BitString(refseqlen);
         isend = new BitString(refseqlen);
 
         currseqfacnum = 0;
@@ -1535,11 +1535,17 @@ void FactorWriterIndex::write_index()
     compfacstarts.save(outfile);
     cout << "facstarts: " << compfacstarts.getSize() << endl;
 
-    // Write out the positions
-    Array posarray(numfacs, refseqlen);
+    // Create the compressed bit vector for isstart
+    BitSequenceRRR compisstart(*isstart);
+    compisstart.save(outfile);
+    cout << "isstart: " << compisstart.getSize() << endl;
+
+    // Write out the positions but map them to consecutive integers
+    // using isstart to find the positions that it should map to
+    Array posarray(numfacs, compisstart.rank1(refseqlen));
     for (i=0; i<numfacs; i++)
     {
-        posarray.setField(i, get_field_64(positions, logrefseqlen, i));
+        posarray.setField(i, compisstart.rank1(get_field_64(positions, logrefseqlen, i))-1);
     }
     posarray.save(outfile);
     cout << "positions: " << posarray.getSize() << endl;
@@ -1577,12 +1583,9 @@ void FactorWriterIndex::write_index()
         cout << "nll: " << nll->getSize()+(numlevels+1)*sizeof(uint32_t);
         cout << endl;
 
-        // Create the compressed bit vector for isstart and isend
-        BitSequenceRRR compisstart(*isstart);
+        // Create the compressed bit vector for isend
         BitSequenceRRR compisend(*isend);
-        compisstart.save(outfile);
         compisend.save(outfile);
-        cout << "isstart: " << compisstart.getSize() << endl;
         cout << "isend: " << compisend.getSize() << endl;
 
         // Create the compressed bit vector for factor start positions
@@ -1596,11 +1599,11 @@ FactorWriterIndex::~FactorWriterIndex()
 {
     delete bwriter;
     delete [] positions;
+    delete isstart;
     if (!displayonly)
     {
         if (nll) delete nll;
         if (levelidx) delete [] levelidx;
-        delete isstart;
         delete isend;
     }
 }
@@ -1627,16 +1630,15 @@ void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
     }
     set_field_64(positions, logrefseqlen, numfacs, pos);
 
+    isstart->setBit(pos);
+
     cumlen += len;
     numfacs++;
 
     if (!displayonly)
     {
         if (pos != refseqlen)
-        {
-            isstart->setBit(pos);
             isend->setBit(pos+len);
-        }
         currseqfacnum++;
     }
 }
