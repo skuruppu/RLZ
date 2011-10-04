@@ -26,6 +26,7 @@
 #include <vector>
 #include <SuffixTree.h>
 #include <Array.h>
+#include <TextIndexCSA.h>
 #include "Bits.h"
 
 #ifdef _cplusplus
@@ -217,7 +218,7 @@ class FactorWriterIndex : public FactorWriter
          * @param displayonly Output only display() query structures
          */
         FactorWriterIndex(ofstream& outfile, cds_utils::Array *refseq,
-                          cds_utils::Array *sa, uint64_t refseqlen,
+                          cds_static::TextIndex *sa, uint64_t refseqlen,
                           uint64_t logrefseqlen, bool displayonly);
 
 
@@ -265,7 +266,7 @@ class FactorWriterIndex : public FactorWriter
         bool displayonly;
 
         // Suffix array of the reference sequence
-        cds_utils::Array *sa;
+        cds_static::TextIndex *sa;
 
         // Nested level lists of the sorted factors
         cds_utils::Array *nll;
@@ -481,6 +482,7 @@ class RLZCompress : RLZ
 
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
+        cds_static::TextIndexCSA *csa;
 
         // Type of encoding
         char encoding;

@@ -25,7 +25,6 @@
 #include <divsufsort64.h>
 #include <BitSequenceSDArray.h>
 #include <BitSequenceRRR.h>
-#include <TextIndexCSA.h>
 #include "RLZ.h"
 #include "alphabet.h"
 
@@ -60,30 +59,7 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->displayonly = displayonly;
     this->st = NULL;
 
-    /*
-    // Construct the compressed suffix array
-    // Read reference sequence into memory since its needed by
-    // suffix tree constructor
-    char *sequence = NULL;
-    size_t seqlen;
-    if (loadText(filenames[0], &sequence, &seqlen))
-    {
-        cerr << "Couldn't read reference sequence.\n";
-        exit(1);
-    }
-    TextIndexCSA *csa = new TextIndexCSA((uchar*)sequence, seqlen, NULL);
-    cout << csa->getSize() << endl;
-
-    ofstream ofile("tmp", ofstream::out);
-    csa->save(ofile);
-    ofile.close();
-
-    delete [] sequence;
-    delete csa;
-    */
-
     read_refseq_and_construct_sa();
-
 }
 
 RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
@@ -170,13 +146,18 @@ void RLZCompress::read_refseq_and_construct_sa()
     // Read reference sequence into memory since its needed by
     // suffix tree constructor
     char *sequence = NULL;
-    if (loadText(filenames[0], &sequence, &refseqlen))
+    size_t seqlen;
+    if (loadText(filenames[0], &sequence, &seqlen))
     {
         cerr << "Couldn't read reference sequence.\n";
         exit(1);
     }
+
+    // Construct the compressed suffix array
+    //csa = new TextIndexCSA((uchar*)sequence, seqlen, NULL);
+
     // loadText places an extra byte at the end
-    refseqlen--;
+    refseqlen = seqlen-1;
 
     // Read the reference sequence
     refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
@@ -201,7 +182,7 @@ void RLZCompress::read_refseq_and_construct_sa()
     i = floor(log2(refseqlen));
     logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 
-    delete [] sequence;
+    //delete [] sequence;
     delete [] sufarray;
 }
 
@@ -366,7 +347,7 @@ void RLZCompress::compress()
             exit(1);
         }
 
-        facwriter = new FactorWriterIndex(outfile, refseq, sa,
+        facwriter = new FactorWriterIndex(outfile, refseq, csa,
                                           refseqlen, logrefseqlen,
                                           displayonly);
     }
@@ -1502,7 +1483,7 @@ public:
 
 FactorWriterIndex::FactorWriterIndex(ofstream& outfile, 
                                      cds_utils::Array *refseq, 
-                                     cds_utils::Array *sa, 
+                                     cds_static::TextIndex *sa, 
                                      uint64_t refseqlen, 
                                      uint64_t logrefseqlen,
                                      bool displayonly) :
@@ -1581,17 +1562,14 @@ void FactorWriterIndex::write_index()
     // locate() queries
     if (!displayonly)
     {
-        /*
-        char *sequence = new char[refseqlen+1];
-        for (i=0; i<refseqlen; i++)
-            sequence[i] = int_to_nucl[refseq->getField(i)];
-        sequence[i] = '\0';
-        TextIndexCSA *csa = new TextIndexCSA((uchar*)sequence, refseqlen+1, NULL);
-        csa->save(outfile);
-        cout << "csa: " << csa->getSize() << endl;
-        delete [] sequence;
-        delete csa;
-        */
+        size_t seqlen = refseqlen+1;
+        char *sequence1 = new char[seqlen];
+        for (i=0; i<seqlen-1; i++)
+            sequence1[i] = int_to_nucl[refseq->getField(i)];
+        sequence1[i] = '\0';
+        TextIndexCSA *csa1 = new TextIndexCSA((uchar*)sequence1, seqlen, NULL);
+        csa1->save(outfile);
+        cout << "csa: " << csa1->getSize() << endl;
 
         /*
         // Construct suffix tree
@@ -1602,8 +1580,8 @@ void FactorWriterIndex::write_index()
         */
 
         // Write out the suffix array
-        sa->save(outfile);
-        cout << "sa: " << sa->getSize() << endl;
+        //sa->save(outfile);
+        //cout << "sa: " << sa->getSize() << endl;
 
         // Construct and write the nested level list
         construct_nested_level_list(compfacstarts);
