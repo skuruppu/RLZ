@@ -1242,7 +1242,7 @@ void RLZ_index::st_search(unsigned char *pattern, unsigned int ptnlen,
 inline uint64_t RLZ_index::factor_length(uint32_t facidx)
 {
     if (facidx+1 == numfacs)
-        return cumseqlens->getField(numseqs+1) -
+        return cumseqlens->getField(numseqs) -
                facstarts->select1(facidx+1);
         
     return facstarts->select1(facidx+2) - facstarts->select1(facidx+1);
