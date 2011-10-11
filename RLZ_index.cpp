@@ -511,7 +511,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                         seq = seqfacstart->rank1(facidx);
                         abspos = facstarts->select1(facidx+1)
                                  + (pos - isstart->select1(
-                                 positions->getField(facidx))+1);
+                                 positions->getField(facidx)+1));
                         occpos = abspos - cumseqlens->getField(seq);
                         occ.seq = seq; occ.pos = occpos;
                         occs.push_back(occ);
