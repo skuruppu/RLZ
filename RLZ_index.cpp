@@ -64,7 +64,7 @@ int main (int argc, char **argv)
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
     rlzidx->size();
-    rlzidx->count();
+    rlzidx->locate();
 
     return 0; 
 }
@@ -567,6 +567,9 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
 
                 for (k=poslb; k<=posrb; k++)
                 {
+                    // Don't check previous factor because it's in a
+                    // difference sequence
+                    if (seqfacstart->access(nll->getField(k))) continue;
                     // Get the position at which the previous factor
                     // occurs in the positions array
                     facidx = nll->getField(k)-1;
@@ -684,6 +687,9 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // Get the position at which the next factor
                     // occurs in the positions array
                     facidx = nll->getField(k)+1;
+                    // Don't check next factor because it's in a
+                    // different sequence
+                    if (seqfacstart->access(facidx)) continue;
                     // Get the position component of the next factor
                     nextpos = isstart->select1(
                               positions->getField(facidx)+1);
