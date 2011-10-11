@@ -64,7 +64,7 @@ int main (int argc, char **argv)
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
     rlzidx->size();
-    rlzidx->display();
+    rlzidx->count();
 
     return 0; 
 }
@@ -739,7 +739,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
         low = pl; high = pr;
 
         // Binary search left
-        while (low <= high)
+        while (low <= high && high != (uint64_t)-1)
         {
             mid = (low + high) >> 1;
 
@@ -774,7 +774,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
         }
 
         // Key not found so return not found symbols
-        if (low > high)
+        if (low > high || high == (uint64_t)-1)
         {
             *lb = (uint64_t)(-1);
             *cr = (uint64_t)(-1);
@@ -783,7 +783,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
 
         // Binary search right
         low = *lb; high = pr;
-        while (low <= high)
+        while (low <= high && high != (uint64_t)-1)
         {
             mid = (low + high) >> 1;
 
@@ -819,7 +819,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
         }
 
         // Key not found so return not found symbols
-        if (low > high)
+        if (low > high || high == (uint64_t)-1)
         {
             *lb = (uint64_t)(-1);
             *cr = (uint64_t)(-1);
@@ -841,7 +841,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
 
     // Binary search left
     low = *lb; high = *rb; 
-    while (low <= high)
+    while (low <= high && high != (uint32_t)-1)
     {
         // Get the middle index 
         mid = (low + high) >> 1;
@@ -887,7 +887,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
     }
 
     // Key not found 
-    if (low > high)
+    if (low > high || high == (uint32_t)-1)
     {
         *lb = (uint32_t)-1;
         *rb = (uint32_t)-1;
@@ -896,7 +896,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
 
     // Binary search right
     low = *lb; high = *rb;
-    while (low <= high)
+    while (low <= high && high != (uint32_t)-1)
     {
         // Get the middle index 
         mid = (low + high) >> 1;
@@ -942,7 +942,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
     }
 
     // Key not found 
-    if (low > high)
+    if (low > high || high == (uint32_t)-1)
     {
         *lb = (uint32_t)-1;
         *rb = (uint32_t)-1;
@@ -958,7 +958,7 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
 
     // Binary search left
     low = *lb; high = *rb;
-    while (low <= high)
+    while (low <= high && high != (uint32_t)-1)
     {
         // Get the middle index 
         mid = (low + high) >> 1;
@@ -1003,7 +1003,7 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
     }
 
     // Key not found 
-    if (low > high)
+    if (low > high || high == (uint32_t)-1)
     {
         *lb = (uint32_t)-1;
         *rb = (uint32_t)-1;
@@ -1012,7 +1012,7 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
 
     // Binary search right
     low = *lb; high = *rb;
-    while (low <= high)
+    while (low <= high && high != (uint32_t)-1)
     {
         // Get the middle index 
         mid = (low + high) >> 1;
@@ -1056,7 +1056,7 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
     }
 
     // Key not found 
-    if (low > high)
+    if (low > high || high == (uint32_t)-1)
     {
         *lb = (uint32_t)-1;
         *rb = (uint32_t)-1;
@@ -1072,7 +1072,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
 
     // Binary search left
     low = *lb; high = *rb;
-    while (low <= high)
+    while (low <= high && high != (uint32_t)-1)
     {
         // Get the middle index 
         mid = (low + high) >> 1;
@@ -1119,7 +1119,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
     }
 
     // Key not found 
-    if (low > high)
+    if (low > high || high == (uint32_t)-1)
     {
         *lb = (uint32_t)-1;
         *rb = (uint32_t)-1;
@@ -1128,7 +1128,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
 
     // Binary search right
     low = *lb; high = *rb;
-    while (low <= high)
+    while (low <= high && high != (uint32_t)-1)
     {
         // Get the middle index 
         mid = (low + high) >> 1;
@@ -1174,7 +1174,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
     }
 
     // Key not found 
-    if (low > high)
+    if (low > high || high == (uint32_t)-1)
     {
         *lb = (uint32_t)-1;
         *rb = (uint32_t)-1;

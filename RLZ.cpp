@@ -595,7 +595,7 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
 
     // Binary search left
     low = pl; high = pr;
-    while (low <= high)
+    while (low <= high && high != (uint64_t)-1)
     {
         mid = (low + high) >> 1;
 
@@ -628,7 +628,7 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
     }
 
     // Key not found so return not found symbols
-    if (low > high)
+    if (low > high || high == (uint64_t)-1)
     {
         *cl = (uint64_t)(-1);
         *cr = (uint64_t)(-1);
@@ -637,7 +637,7 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
 
     // Binary search right
     low = *cl; high = pr;
-    while (low <= high)
+    while (low <= high && high != (uint64_t)-1)
     {
         mid = (low + high) >> 1;
 
@@ -671,7 +671,7 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
     }
 
     // Key not found so return not found symbols
-    if (low > high)
+    if (low > high || high == (uint64_t)-1)
     {
         *cl = (uint64_t)(-1);
         *cr = (uint64_t)(-1);
