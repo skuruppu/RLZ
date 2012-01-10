@@ -347,7 +347,7 @@ void RLZCompress::compress()
             exit(1);
         }
 
-        facwriter = new FactorWriterIndex(outfile, refseq, csa,
+        facwriter = new FactorWriterIndex(outfile, refseq, sa,
                                           refseqlen, logrefseqlen,
                                           displayonly);
     }
@@ -1483,7 +1483,7 @@ public:
 
 FactorWriterIndex::FactorWriterIndex(ofstream& outfile, 
                                      cds_utils::Array *refseq, 
-                                     cds_static::TextIndex *sa, 
+                                     cds_utils::Array *sa, 
                                      uint64_t refseqlen, 
                                      uint64_t logrefseqlen,
                                      bool displayonly) :
@@ -1542,11 +1542,10 @@ void FactorWriterIndex::write_index()
 
     // Write out the positions but map them to consecutive integers
     // using isstart to find the positions that it should map to
-    Array posarray(numfacs, compisstart.rank1(refseqlen));
+    Array posarray(numfacs, refseqlen);
     for (i=0; i<numfacs; i++)
     {
-        posarray.setField(i, compisstart.rank1(get_field_64(positions,
-                          logrefseqlen, i))-1);
+        posarray.setField(i, get_field_64(positions, logrefseqlen, i));
     }
     posarray.save(outfile);
     cout << "positions: " << posarray.getSize() << endl;
@@ -1562,6 +1561,7 @@ void FactorWriterIndex::write_index()
     // locate() queries
     if (!displayonly)
     {
+        /*
         size_t seqlen = refseqlen+1;
         char *sequence1 = new char[seqlen];
         for (i=0; i<seqlen-1; i++)
@@ -1570,6 +1570,7 @@ void FactorWriterIndex::write_index()
         TextIndexCSA *csa1 = new TextIndexCSA((uchar*)sequence1, seqlen, NULL);
         csa1->save(outfile);
         cout << "csa: " << csa1->getSize() << endl;
+        */
 
         /*
         // Construct suffix tree
@@ -1580,8 +1581,8 @@ void FactorWriterIndex::write_index()
         */
 
         // Write out the suffix array
-        //sa->save(outfile);
-        //cout << "sa: " << sa->getSize() << endl;
+        sa->save(outfile);
+        cout << "sa: " << sa->getSize() << endl;
 
         // Construct and write the nested level list
         construct_nested_level_list(compfacstarts);

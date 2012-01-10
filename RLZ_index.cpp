@@ -64,7 +64,7 @@ int main (int argc, char **argv)
     RLZ_index *rlzidx = new RLZ_index(argv[1]);
 
     rlzidx->size();
-    rlzidx->count();
+    rlzidx->display();
 
     return 0; 
 }
@@ -127,10 +127,10 @@ RLZ_index::RLZ_index(char *filename) :
     // queries
 
     // Read in the suffix array
-    //sa = new Array(idxfile);
+    sa = new Array(idxfile);
 
     // Read in the compressed suffix array
-    sa = TextIndex::load(idxfile);
+    //sa = TextIndex::load(idxfile);
 
     // Read in the suffix tree
     //st = SuffixTree::load(idxfile);
@@ -200,7 +200,7 @@ void RLZ_index::decode()
             else
                 len = facstarts->select1(j+2) - facstarts->select1(j+1);
             // Standard factor decoding
-            outfile << isstart->select1(positions->getField(j)+1) << ' ';
+            outfile << positions->getField(j) << ' ';
             // Print the length
             outfile << len << endl;
         }
@@ -293,7 +293,7 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
         l = facstarts->select1(rk+1) - b;
 
     // Just a standard factor
-    p = isstart->select1(positions->getField(rk-1)+1);
+    p = positions->getField(rk-1);
     // A substring of Ns
     if (p == refseqlen)
     {
@@ -327,7 +327,7 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
                 l = facstarts->select1(rk+1) - b;
 
             // Just a standard factor
-            p = isstart->select1(positions->getField(rk-1)+1);
+            p = positions->getField(rk-1);
 
             // A substring of Ns
             if (p == refseqlen)
@@ -477,8 +477,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
             for (i=lb; i<=rb; i++)
             {
                 occ.seq = 0;
-                //occ.pos = sa->getField(i);
-                occ.pos = sa->getSA(i);
+                occ.pos = sa->getField(i);
+                //occ.pos = sa->getSA(i);
                 //occ.pos = st->Locate(i,i);
                 occs.push_back(occ);
             }
@@ -489,8 +489,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         {
             // Look for factors that contain this interval in all levels
             // of the nll
-            //pos = sa->getField(i);
-            pos = sa->getSA(i);
+            pos = sa->getField(i);
+            //pos = sa->getSA(i);
             //pos = st->Locate(i,i);
             for (j=0; j<numlevels; j++)
             {
@@ -510,8 +510,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                         facidx = nll->getField(k);
                         seq = seqfacstart->rank1(facidx);
                         abspos = facstarts->select1(facidx+1)
-                                 + (pos - isstart->select1(
-                                 positions->getField(facidx)+1));
+                                 + (pos - positions->getField(facidx));
                         occpos = abspos - cumseqlens->getField(seq);
                         occ.seq = seq; occ.pos = occpos;
                         occs.push_back(occ);
@@ -551,8 +550,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // the prefix and the second factor starts with the suffix
         for (l=lb; l<=rb; l++)
         {
-            //pos = sa->getField(l);
-            pos = sa->getSA(l);
+            pos = sa->getField(l);
+            //pos = sa->getSA(l);
             //pos = st->Locate(l, l);
             // Ignore start positions at which factors don't start
             if (!isstart->access(pos))
@@ -578,8 +577,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // occurs in the positions array
                     facidx = facidx-1;
                     // Get the position component of the previous factor
-                    prevpos = isstart->select1(
-                              positions->getField(facidx)+1);
+                    prevpos = positions->getField(facidx);
                     // Ignore factors that are all Ns
                     if (prevpos == refseqlen) continue;
 
@@ -672,8 +670,8 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // the prefix and the second factor starts with the suffix
         for (l=lb; l<=rb; l++)
         {
-            //pos = sa->getField(l);
-            pos = sa->getSA(l);
+            pos = sa->getField(l);
+            //pos = sa->getSA(l);
             //pos = st->Locate(l, l);
             // Ignore end positions at which factors don't end
             if (!isend->access(pos+pfxlen))
@@ -695,8 +693,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // different sequence
                     if (seqfacstart->access(facidx)) continue;
                     // Get the position component of the next factor
-                    nextpos = isstart->select1(
-                              positions->getField(facidx)+1);
+                    nextpos = positions->getField(facidx);
                     // Ignore factors that are all Ns
                     if (nextpos == refseqlen) continue;
 
@@ -753,8 +750,8 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
         {
             mid = (low + high) >> 1;
 
-            //midval = refseq->getField(sa->getField(mid)+i);
-            midval = refseq->getField(sa->getSA(mid)+i);
+            midval = refseq->getField(sa->getField(mid)+i);
+            //midval = refseq->getField(sa->getSA(mid)+i);
             // Move left boundary to the middle
             if (midval < c)
                 low = mid + 1;
@@ -769,8 +766,8 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
                     *lb = mid;
                     break;
                 }
-                //midvalleft = refseq->getField(sa->getField(mid-1)+i);
-                midvalleft = refseq->getField(sa->getSA(mid-1)+i);
+                midvalleft = refseq->getField(sa->getField(mid-1)+i);
+                //midvalleft = refseq->getField(sa->getSA(mid-1)+i);
                 // Discard mid and values to the right of mid
                 if(midvalleft == midval)
                     high = mid - 1;
@@ -798,8 +795,8 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
             mid = (low + high) >> 1;
 
 
-            //midval = refseq->getField(sa->getField(mid)+i);
-            midval = refseq->getField(sa->getSA(mid)+i);
+            midval = refseq->getField(sa->getField(mid)+i);
+            //midval = refseq->getField(sa->getSA(mid)+i);
             // Move left bounary to the middle
             if (midval < c)
                 low = mid + 1;
@@ -814,8 +811,8 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
                     *cr = mid;
                     break;
                 }
-                //midvalright = refseq->getField(sa->getField(mid+1)+i);
-                midvalright = refseq->getField(sa->getSA(mid+1)+i);
+                midvalright = refseq->getField(sa->getField(mid+1)+i);
+                //midvalright = refseq->getField(sa->getSA(mid+1)+i);
                 // Discard mid and the ones to the left of mid
                 if(midvalright == midval)
                     low = mid + 1; 
@@ -858,7 +855,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
 
         // Get the factor at the middle index 
         facidx = nll->getField(mid);
-        pos = isstart->select1(positions->getField(facidx)+1);
+        pos = positions->getField(facidx);
         len = factor_length(facidx);
 
         // The factor is to the right of the current middle 
@@ -879,7 +876,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
 
             // Get the factor at the left of the middle
             facidx = nll->getField(mid-1);
-            pos = isstart->select1(positions->getField(facidx)+1);
+            pos = positions->getField(facidx);
             len = factor_length(facidx);
 
             // mid - 1 factor is less than the current position so we've
@@ -913,7 +910,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
 
         // Get the factor at the middle index 
         facidx = nll->getField(mid);
-        pos = isstart->select1(positions->getField(facidx)+1);
+        pos = positions->getField(facidx);
         len = factor_length(facidx);
 
         // The factor is to the right of the current middle 
@@ -934,7 +931,7 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
 
             // Get the factor at the right of the middle
             facidx = nll->getField(mid+1);
-            pos = isstart->select1(positions->getField(facidx)+1);
+            pos = positions->getField(facidx);
             len = factor_length(facidx);
 
             // mid + 1 factor is greater than the current position so we've
@@ -975,7 +972,7 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
 
         // Get the factor at the middle index 
         facidx = nll->getField(mid);
-        pos = isstart->select1(positions->getField(facidx)+1);
+        pos = positions->getField(facidx);
 
         // The factor is to the right of the current middle 
         if (start > pos)
@@ -996,7 +993,7 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
             // Get the nucleotide at the left of the middle suffix +
             // offset 
             facidx = nll->getField(mid-1);
-            pos = isstart->select1(positions->getField(facidx)+1);
+            pos = positions->getField(facidx);
 
             // mid - 1 factor is less than the current position so we've
             // reached the left most boundary 
@@ -1029,7 +1026,7 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
 
         // Get the factor at the middle index 
         facidx = nll->getField(mid);
-        pos = isstart->select1(positions->getField(facidx)+1);
+        pos = positions->getField(facidx);
 
         // The factor is to the right of the current middle 
         if (start > pos)
@@ -1049,7 +1046,7 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
 
             // Get the factor at the right of the middle
             facidx = nll->getField(mid+1);
-            pos = isstart->select1(positions->getField(facidx)+1);
+            pos = positions->getField(facidx);
 
             // mid + 1 factor is greater than the current position so we've
             // reached the right most boundary 
@@ -1089,7 +1086,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
 
         // Get the factor at the middle index 
         facidx = nll->getField(mid);
-        pos = isstart->select1(positions->getField(facidx)+1);
+        pos = positions->getField(facidx);
         len = factor_length(facidx);
 
         // The factor is to the right of the current middle 
@@ -1111,7 +1108,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
             // Get the nucleotide at the left of the middle suffix +
             // offset 
             facidx = nll->getField(mid-1);
-            pos = isstart->select1(positions->getField(facidx)+1);
+            pos = positions->getField(facidx);
             len = factor_length(facidx);
 
             // mid - 1 factor is less than the current position so we've
@@ -1145,7 +1142,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
 
         // Get the factor at the middle index 
         facidx = nll->getField(mid);
-        pos = isstart->select1(positions->getField(facidx)+1);
+        pos = positions->getField(facidx);
         len = factor_length(facidx);
 
         // The factor is to the right of the current middle 
@@ -1166,7 +1163,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
 
             // Get the factor at the right of the middle
             facidx = nll->getField(mid+1);
-            pos = isstart->select1(positions->getField(facidx)+1);
+            pos = positions->getField(facidx);
             len = factor_length(facidx);
 
             // mid + 1 factor is greater than the current position so we've

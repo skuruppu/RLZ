@@ -218,7 +218,7 @@ class FactorWriterIndex : public FactorWriter
          * @param displayonly Output only display() query structures
          */
         FactorWriterIndex(ofstream& outfile, cds_utils::Array *refseq,
-                          cds_static::TextIndex *sa, uint64_t refseqlen,
+                          cds_utils::Array *sa, uint64_t refseqlen,
                           uint64_t logrefseqlen, bool displayonly);
 
 
@@ -266,7 +266,7 @@ class FactorWriterIndex : public FactorWriter
         bool displayonly;
 
         // Suffix array of the reference sequence
-        cds_static::TextIndex *sa;
+        cds_utils::Array *sa;
 
         // Nested level lists of the sorted factors
         cds_utils::Array *nll;

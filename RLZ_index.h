@@ -140,8 +140,8 @@ class RLZ_index
         cds_static::SuffixTree *st;
 
         // Suffix array of the reference sequence
-        //cds_utils::Array *sa;
-        cds_static::TextIndex *sa;
+        cds_utils::Array *sa;
+        //cds_static::TextIndex *sa;
 
         // Nested level lists of the sorted factors
         cds_utils::Array *nll;
