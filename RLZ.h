@@ -277,9 +277,9 @@ class FactorWriterIndex : public FactorWriter
         std::vector<bool> seqstarts;
         uint32_t currseqfacnum;
 
-		// Bit vectors to store which positions factors start and end at
-		cds_utils::BitString *isstart;
-		cds_utils::BitString *isend;
+        // Bit vectors to store which positions factors start and end at
+        cds_utils::BitString *isstart;
+        cds_utils::BitString *isend;
 
         void construct_nested_level_list(cds_static::BitSequenceSDArray&
                                          facstartssdarray);

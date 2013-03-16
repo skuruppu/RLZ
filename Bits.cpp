@@ -242,8 +242,8 @@ void GolombCoder::golomb_encode(uint64_t n, unsigned int b, unsigned int log2b)
 
     // Get the quotient and the remainder from dividing n by b
     quotient = n >> log2b;
-	remainder = (n << ((sizeof(uint64_t)<<3)-log2b)) >>
-			    ((sizeof(uint64_t)<<3)-log2b);
+    remainder = (n << ((sizeof(uint64_t)<<3)-log2b)) >>
+                ((sizeof(uint64_t)<<3)-log2b);
     
     // Encode the quotient
     for (i = 0; i<quotient; i++)
@@ -304,7 +304,7 @@ int GolombCoder::is_power_of_two(unsigned int b)
 uint64_t GolombCoder::golomb_decode(unsigned int b, unsigned int log2b)
 {
     uint64_t quotient, remainder;
-	unsigned int bit;
+    unsigned int bit;
 
     // Decode the quotient
     quotient = 0;

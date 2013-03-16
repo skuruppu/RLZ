@@ -971,7 +971,7 @@ void FactorWriter::find_LISS(vector<uint64_t>& a, vector<uint64_t>& b)
             if (u > 0) 
                 p[i] = b[u-1];
             b[u] = i;
-        }	
+        }   
     }
 
     // Back-track to figure out which indices are part of the LISS

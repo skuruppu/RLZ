@@ -114,14 +114,14 @@ RLZ_index::RLZ_index(char *filename) :
     uint64_t i = floor(log2(refseqlen));
     logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 
-	idxfile.get();
-	if (idxfile.eof())
-	{
-		displayonly = true;
-		idxfile.close();
-		return;
-	}
-	idxfile.unget();
+    idxfile.get();
+    if (idxfile.eof())
+    {
+        displayonly = true;
+        idxfile.close();
+        return;
+    }
+    idxfile.unget();
 
     // Read in data stuctures needed to implement locate() and count()
     // queries
@@ -1271,7 +1271,7 @@ int RLZ_index::size()
 
     size = 0;
     // Contents of the refseq array
-	size += (unsigned int)refseq->getSize();
+    size += (unsigned int)refseq->getSize();
     // Size of the refseqlen variables
     size += (sizeof(refseqlen) + sizeof(logrefseqlen)); 
     totalsize += size;
@@ -1282,7 +1282,7 @@ int RLZ_index::size()
     // Size of cumseqlens, positions and facstarts arrays 
 
     size = 0;
-	// Contents of isstart and isend
+    // Contents of isstart and isend
     size += (unsigned int)isstart->getSize();
     cerr << "isstart: " << (unsigned int)isstart->getSize() << " bytes\n";
     // Contents of positions array
@@ -1304,36 +1304,36 @@ int RLZ_index::size()
     cerr << "Factors: " << size << " bytes\n";
     cerr << endl;
 
-	if (!displayonly)
-	{
-		size = 0;
-		// Contents of suffix array
-		size += (unsigned int)sa->getSize();
-		cerr << "suffix array: " << (unsigned int)sa->getSize() << " bytes\n";
-		// Contents of suffix tree
-		//size += (unsigned int)st->getSize();
-		//cerr << "suffix tree: " << (unsigned int)st->getSize() << " bytes\n";
-		// Contents of nested level lists
-		size += ((unsigned int)nll->getSize() + (unsigned int)levelidx->getSize());
-		cerr << "nested level lists: "
-			 << (unsigned int)nll->getSize() + levelidx->getSize()
-			 << " bytes\n";
-		// Contents of isend
-		size += (unsigned int)isend->getSize();
-		cerr << "isend: " << (unsigned int)isend->getSize() << " bytes\n";
-		// Contents of seqfacstart
-		size += (unsigned int)seqfacstart->getSize();
-		cerr << "seqfacstart: " << (unsigned int)seqfacstart->getSize() << " bytes\n";
-		// Size of the sa and nll variables
-		size += (sizeof(sa)+sizeof(nll)+sizeof(levelidx)+sizeof(numlevels));
-		// Size of isstart, isend and seqfacstart bit vectors
-		size += (sizeof(isstart)+sizeof(isend)+sizeof(seqfacstart));
-		totalsize += size;
+    if (!displayonly)
+    {
+        size = 0;
+        // Contents of suffix array
+        size += (unsigned int)sa->getSize();
+        cerr << "suffix array: " << (unsigned int)sa->getSize() << " bytes\n";
+        // Contents of suffix tree
+        //size += (unsigned int)st->getSize();
+        //cerr << "suffix tree: " << (unsigned int)st->getSize() << " bytes\n";
+        // Contents of nested level lists
+        size += ((unsigned int)nll->getSize() + (unsigned int)levelidx->getSize());
+        cerr << "nested level lists: "
+             << (unsigned int)nll->getSize() + levelidx->getSize()
+             << " bytes\n";
+        // Contents of isend
+        size += (unsigned int)isend->getSize();
+        cerr << "isend: " << (unsigned int)isend->getSize() << " bytes\n";
+        // Contents of seqfacstart
+        size += (unsigned int)seqfacstart->getSize();
+        cerr << "seqfacstart: " << (unsigned int)seqfacstart->getSize() << " bytes\n";
+        // Size of the sa and nll variables
+        size += (sizeof(sa)+sizeof(nll)+sizeof(levelidx)+sizeof(numlevels));
+        // Size of isstart, isend and seqfacstart bit vectors
+        size += (sizeof(isstart)+sizeof(isend)+sizeof(seqfacstart));
+        totalsize += size;
 
-		cerr << "-----\n";
-		cerr << "Search: " << size << " bytes\n";
-		cerr << endl;
-	}
+        cerr << "-----\n";
+        cerr << "Search: " << size << " bytes\n";
+        cerr << endl;
+    }
 
     cerr << "Total: " << totalsize << " bytes\n";
     cerr << endl;
