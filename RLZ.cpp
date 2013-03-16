@@ -148,7 +148,7 @@ void RLZCompress::read_refseq_and_construct_sa()
     // Read reference sequence into memory since its needed by
     // suffix tree constructor
     char *sequence = NULL;
-    size_t seqlen;
+    uint64_t seqlen;
     if (loadText(filenames[0], &sequence, &seqlen))
     {
         cerr << "Couldn't read reference sequence.\n";
