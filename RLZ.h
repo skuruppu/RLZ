@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <SuffixTree.h>
 #include <Array.h>
 #include <TextIndexCSA.h>
@@ -216,10 +217,12 @@ class FactorWriterIndex : public FactorWriter
          * @param refseqlen Length of reference sequence
          * @param logrefseqlen Number of bits for encoding positions
          * @param displayonly Output only display() query structures
+         * @param usecsa Use a compressed suffix array
          */
         FactorWriterIndex(ofstream& outfile, cds_utils::Array *refseq,
                           cds_utils::Array *sa, uint64_t refseqlen,
-                          uint64_t logrefseqlen, bool displayonly);
+                          uint64_t logrefseqlen, bool displayonly,
+                          bool usecsa);
 
 
         /** Destructor for the class. */
@@ -264,6 +267,9 @@ class FactorWriterIndex : public FactorWriter
         // If this is true, only write the data structures required to
         // implement display() query
         bool displayonly;
+
+        // If this is true, use a compressed suffix array
+        bool usecsa;
 
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
@@ -457,9 +463,10 @@ class RLZCompress : RLZ
          * @param numfiles Number of files in the dataset
          * @param idxname Name to give to the index
          * @param displayonly Only implement display() query
+         * @param usecsa Use a compressed suffix array
          */
         RLZCompress(char **filenames, uint64_t numfiles, char *idxname,
-                    bool displayonly);
+                    bool displayonly, bool usecsa);
 
         /** Temporary constructor that implements the suffix tree
          * instead of a suffix array.
@@ -482,7 +489,6 @@ class RLZCompress : RLZ
 
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
-        cds_static::TextIndexCSA *csa;
 
         // Type of encoding
         char encoding;
@@ -499,6 +505,9 @@ class RLZCompress : RLZ
         // If this is true, only write the data structures required to
         // implement display() query
         bool displayonly;
+
+        // If this is true, use a compressed suffix array
+        bool usecsa;
 
         /** Read the reference sequence and construct the suffix array
          */

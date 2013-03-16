@@ -42,13 +42,14 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->isliss = isliss;
     this->idxname = NULL;
     this->displayonly = false;
+    this->usecsa = false;
     this->st = NULL;
 
     read_refseq_and_sa();
 }
 
-RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
-                         char *idxname, bool displayonly)
+RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
+                         char *idxname, bool displayonly, bool usecsa)
 {
     this->filenames = filenames;
     this->numfiles = numfiles;
@@ -57,6 +58,7 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->isliss = false;
     this->idxname = idxname;
     this->displayonly = displayonly;
+    this->usecsa = usecsa;
     this->st = NULL;
 
     read_refseq_and_construct_sa();
@@ -152,9 +154,6 @@ void RLZCompress::read_refseq_and_construct_sa()
         cerr << "Couldn't read reference sequence.\n";
         exit(1);
     }
-
-    // Construct the compressed suffix array
-    //csa = new TextIndexCSA((uchar*)sequence, seqlen, NULL);
 
     // loadText places an extra byte at the end
     refseqlen = seqlen-1;
@@ -349,7 +348,7 @@ void RLZCompress::compress()
 
         facwriter = new FactorWriterIndex(outfile, refseq, sa,
                                           refseqlen, logrefseqlen,
-                                          displayonly);
+                                          displayonly, usecsa);
     }
 
     for (i=1; i<numfiles; i++)
@@ -1486,7 +1485,8 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
                                      cds_utils::Array *sa, 
                                      uint64_t refseqlen, 
                                      uint64_t logrefseqlen,
-                                     bool displayonly) :
+                                     bool displayonly,
+                                     bool usecsa) :
     outfile(outfile)
 {
     this->refseq = refseq;
@@ -1494,6 +1494,7 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile,
     this->refseqlen = refseqlen;
     this->logrefseqlen = logrefseqlen;
     this->displayonly = displayonly;
+    this->usecsa = usecsa;
 
     bwriter = new BitWriter(outfile);
 
@@ -1561,16 +1562,24 @@ void FactorWriterIndex::write_index()
     // locate() queries
     if (!displayonly)
     {
-        /*
-        size_t seqlen = refseqlen+1;
-        char *sequence1 = new char[seqlen];
-        for (i=0; i<seqlen-1; i++)
-            sequence1[i] = int_to_nucl[refseq->getField(i)];
-        sequence1[i] = '\0';
-        TextIndexCSA *csa1 = new TextIndexCSA((uchar*)sequence1, seqlen, NULL);
-        csa1->save(outfile);
-        cout << "csa: " << csa1->getSize() << endl;
-        */
+        if (usecsa)
+        {
+            size_t seqlen = refseqlen+1;
+            char *sequence1 = new char[seqlen];
+            for (i=0; i<seqlen-1; i++)
+                sequence1[i] = int_to_nucl[refseq->getField(i)];
+            sequence1[i] = '\0';
+            TextIndexCSA *csa = new TextIndexCSA((uchar*)sequence1, seqlen,
+                                                 NULL);
+            csa->save(outfile);
+            cout << "csa: " << csa->getSize() << endl;
+        }
+        else
+        {
+            // Write out the suffix array
+            sa->save(outfile);
+            cout << "sa: " << sa->getSize() << endl;
+        }
 
         /*
         // Construct suffix tree
@@ -1579,10 +1588,6 @@ void FactorWriterIndex::write_index()
         cout << "st: " << sty.getSize() << endl;
         delete [] sequence;
         */
-
-        // Write out the suffix array
-        sa->save(outfile);
-        cout << "sa: " << sa->getSize() << endl;
 
         // Construct and write the nested level list
         construct_nested_level_list(compfacstarts);
