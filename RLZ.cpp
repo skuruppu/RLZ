@@ -1531,7 +1531,13 @@ void FactorWriterIndex::write_index()
     cout << "refseq: " << refseq->getSize() << endl;
 
     // Create the compressed bit vector and write it
-    BitSequenceSDArray compfacstarts(facstarts);
+    cds_utils::BitString facstartsbitstr(facstarts.size());
+    for (i=0; i<facstarts.size(); i++) {
+        if (facstarts.at(i)) {
+            facstartsbitstr.setBit(i);
+        }
+    }
+    BitSequenceSDArray compfacstarts(facstartsbitstr);
     compfacstarts.save(outfile);
     cout << "facstarts: " << compfacstarts.getSize() << endl;
 
@@ -1601,7 +1607,13 @@ void FactorWriterIndex::write_index()
         cout << "isend: " << compisend.getSize() << endl;
 
         // Create the compressed bit vector for factor start positions
-        BitSequenceSDArray compseqstarts(seqstarts);
+        cds_utils::BitString seqstartsbitstr(seqstarts.size());
+        for (i=0; i<seqstarts.size(); i++) {
+            if (seqstarts.at(i)) {
+                seqstartsbitstr.setBit(i);
+            }
+        }
+        BitSequenceSDArray compseqstarts(seqstartsbitstr);
         compseqstarts.save(outfile);
         cout << "compseqstarts: " << compseqstarts.getSize() << endl;
     }
