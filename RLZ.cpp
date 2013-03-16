@@ -1327,7 +1327,7 @@ bool FactorReaderText::read_factor(uint64_t *pos, uint64_t *len,
         // EOF detected
         if (infile.eof())
         {
-            *pos = NULL; *len = NULL; substr.clear();
+            substr.clear();
             return false;
         }
         // Some other IO error
@@ -1435,7 +1435,6 @@ bool FactorReaderBinary::read_factor(uint64_t *pos, uint64_t *len,
     // EOF reached
     catch (BitsEOFException& eofexp)
     {
-        *pos = NULL; *len = NULL;
         return false;
     }
     return true;
