@@ -102,6 +102,31 @@ testDisplay
 rm $IDXFILE
 echo ""
 
+COUNTTESTDIR="$TESTDIR/count"
+COUNTFILES="`cat $COUNTTESTDIR/files`"
+IDXFILE="$TESTDIR/test.idx"
+
+testCount()
+{
+    for FILE in $COUNTFILES
+    do
+        ./rlzindex c $IDXFILE < $FILE.test > $FILE.out 2> /dev/null
+        OUTPUT=`diff $FILE.exp "$FILE.out"`
+        if [ ! -z "$OUTPUT" ]
+        then
+            echo "\t[FAILED] Output for $FILE does not match expected output."
+        fi
+        rm $FILE.out
+    done
+}
+
+# Test count
+echo "[TEST] RLZ count"
+./rlz -i $IDXFILE $FILES > /dev/null 2>&1
+testCount
+rm $IDXFILE
+echo ""
+
 # Clean up
 make clobber
 

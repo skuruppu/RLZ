@@ -48,6 +48,34 @@ def generateDisplayTests(sequences, sequencelens, numqueries, querylen,
 
         i += 1
 
+def generatePattern(querylen):
+    alpha = ['a','c','g','t']
+
+    pattern = ''
+    for j in range(0, querylen):
+        pattern += alpha[random.randint(0, len(alpha) - 1)]
+    return pattern
+
+def generateCountTests(sequences, sequencelens, numqueries, querylen,
+                       testfile, expoutfile):
+
+    for i in range(0, numqueries):
+        pattern = generatePattern(querylen)
+        testfile.write("%s\n" % (pattern))
+
+        expocc = 0
+        for sequence in sequences:
+            start = 0
+            while start < len(sequence):
+                pos = sequence.find(pattern, start)
+                if pos != -1:
+                    expocc += 1
+                    start = pos+1
+                else:
+                    break
+
+        expoutfile.write("%s : %d\n" % (pattern, expocc))
+
 # Main function
 def main(args=None):
     usage = """%prog query queries querylen prefix ref file ...
@@ -103,6 +131,8 @@ def main(args=None):
         generateDisplayTests(sequences, sequencelens, numqueries, querylen,
                              testfile, expoutfile)
     elif qrytype == 'c':
+        generateCountTests(sequences, sequencelens, numqueries, querylen,
+                           testfile, expoutfile)
         pass
     elif qrytype == 'l':
         pass
