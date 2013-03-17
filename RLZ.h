@@ -25,6 +25,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <SuffixTree.h>
 #include <Array.h>
 #include "Bits.h"
 
