@@ -127,6 +127,34 @@ testCount
 rm $IDXFILE
 echo ""
 
+LOCATETESTDIR="$TESTDIR/locate"
+LOCATEFILES="`cat $LOCATETESTDIR/files`"
+IDXFILE="$TESTDIR/test.idx"
+
+testLocate()
+{
+    for FILE in $LOCATEFILES
+    do
+        ./rlzindex l $IDXFILE < $FILE.test > $FILE.out 2> /dev/null
+        # This is a bit of dodgy trick to account for the fact that the output
+        # is not in the same order as the expected output
+        sort $FILE.exp > $LOCATETESTDIR/e
+        sort $FILE.out > $LOCATETESTDIR/o
+        OUTPUT=`diff "$LOCATETESTDIR/e" "$LOCATETESTDIR/o"`
+        if [ ! -z "$OUTPUT" ]
+        then
+            echo "\t[FAILED] Output for $FILE does not match expected output."
+        fi
+        rm $FILE.out $LOCATETESTDIR/e $LOCATETESTDIR/o
+    done
+}
+
+# Test locate
+echo "[TEST] RLZ locate"
+./rlz -i $IDXFILE $FILES > /dev/null 2>&1
+testLocate
+rm $IDXFILE
+echo ""
+
 # Clean up
 make clobber
-

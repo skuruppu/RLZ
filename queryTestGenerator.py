@@ -58,7 +58,6 @@ def generatePattern(querylen):
 
 def generateCountTests(sequences, sequencelens, numqueries, querylen,
                        testfile, expoutfile):
-
     for i in range(0, numqueries):
         pattern = generatePattern(querylen)
         testfile.write("%s\n" % (pattern))
@@ -75,6 +74,24 @@ def generateCountTests(sequences, sequencelens, numqueries, querylen,
                     break
 
         expoutfile.write("%s : %d\n" % (pattern, expocc))
+
+def generateLocateTests(sequences, sequencelens, numqueries, querylen,
+                        testfile, expoutfile):
+    for i in range(0, numqueries):
+        pattern = generatePattern(querylen)
+        testfile.write("%s\n" % (pattern))
+
+        j = 0
+        for sequence in sequences:
+            start = 0
+            while start < len(sequence):
+                pos = sequence.find(pattern, start)
+                if pos != -1:
+                    expoutfile.write("%d %d\n" % (j, pos))
+                    start = pos+1
+                else:
+                    break
+            j += 1
 
 # Main function
 def main(args=None):
@@ -133,9 +150,9 @@ def main(args=None):
     elif qrytype == 'c':
         generateCountTests(sequences, sequencelens, numqueries, querylen,
                            testfile, expoutfile)
-        pass
     elif qrytype == 'l':
-        pass
+        generateLocateTests(sequences, sequencelens, numqueries, querylen,
+                            testfile, expoutfile)
 
     testfile.close()
     expoutfile.close()
