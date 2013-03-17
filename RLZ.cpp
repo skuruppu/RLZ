@@ -300,7 +300,6 @@ void RLZCompress::compress()
         }
 
         relative_LZ_factorise(infile, filenames[i], *facwriter);
-        //relative_LZ_factorise(infile, filenames[i], outfile, true);
 
         if (encoding != 'i')
         {
