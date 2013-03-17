@@ -42,7 +42,6 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->isliss = isliss;
     this->idxname = NULL;
     this->displayonly = false;
-    this->st = NULL;
 
     read_refseq_and_sa();
 }
@@ -57,84 +56,8 @@ RLZCompress::RLZCompress(char **filenames, uint64_t numfiles,
     this->isliss = false;
     this->idxname = idxname;
     this->displayonly = displayonly;
-    this->st = NULL;
 
     read_refseq_and_construct_sa();
-}
-
-RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
-                         bool state)
-{
-    this->filenames = filenames;
-    this->numfiles = numfiles;
-    this->sa = NULL;
-
-    initialise_nucl_converters();
-
-    char stfilename[1024];
-    sprintf(stfilename, "%s.st", filenames[0]);
-    ifstream infile;
-    infile.open(stfilename, ifstream::in);
-    // Need to construct suffix tree
-    if (!infile.good())
-    {
-        infile.close();
-        // Read reference sequence into memory since its needed by
-        // suffix tree constructor
-        char *sequence = NULL;
-        if (loadText(filenames[0], &sequence, &refseqlen))
-        {
-            cerr << "Couldn't read reference sequence.\n";
-            exit(1);
-        }
-        // loadText places an extra byte at the end
-        refseqlen--;
-
-        // Read the reference sequence
-        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
-        store_sequence(sequence, filenames[0], refseq, refseqlen);
-
-        // Construct suffix tree
-        SuffixTreeY *sty = new SuffixTreeY(sequence, refseqlen+1, DAC,
-                                           CN_NPR, 32);
-
-        // Write out suffix tree to disk for later use
-        ofstream outfile(stfilename);
-        sty->save(outfile);
-        outfile.close();
-
-        st = sty;
-
-        delete [] sequence;
-    }
-    else
-    {
-        // Load suffix tree from saved suffix tree file
-        st = SuffixTree::load(infile);
-        infile.close();
-        
-        // Open reference sequence file
-        infile.open(filenames[0], ifstream::in);
-        if (!infile.good())
-        {
-            cerr << "Couldn't open file " << filenames[0] << ".\n";
-            exit(1);
-        }
-
-        // Get the reference sequence length
-        infile.seekg(0, ios::end);
-        refseqlen = infile.tellg();
-        infile.seekg(0, ios::beg);
-
-        // Read the reference sequence
-        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
-        store_sequence(infile, filenames[0], refseq, refseqlen);
-        infile.close();
-    }
-
-    // Calculate the log of the reference sequence length
-    uint64_t i = floor(log2(refseqlen));
-    logrefseqlen = ((unsigned)(1<<i) != refseqlen) ? i+1 : i;
 }
 
 void RLZCompress::read_refseq_and_construct_sa()
@@ -144,7 +67,7 @@ void RLZCompress::read_refseq_and_construct_sa()
     initialise_nucl_converters();
 
     // Read reference sequence into memory since its needed by
-    // suffix tree constructor
+    // suffix arrey constructor
     char *sequence = NULL;
     uint64_t seqlen;
     if (loadText(filenames[0], &sequence, &seqlen))
@@ -152,9 +75,6 @@ void RLZCompress::read_refseq_and_construct_sa()
         cerr << "Couldn't read reference sequence.\n";
         exit(1);
     }
-
-    // Construct the compressed suffix array
-    //csa = new TextIndexCSA((uchar*)sequence, seqlen, NULL);
 
     // loadText places an extra byte at the end
     refseqlen = seqlen-1;
@@ -200,7 +120,7 @@ void RLZCompress::read_refseq_and_sa()
     {
         infile.close();
         // Read reference sequence into memory since its needed by
-        // suffix tree constructor
+        // suffix arrey constructor
         char *sequence = NULL;
         if (loadText(filenames[0], &sequence, &refseqlen))
         {
@@ -272,7 +192,6 @@ RLZCompress::~RLZCompress()
 {
     delete refseq;
     if (sa != NULL) delete sa;
-    if (st != NULL) delete st;
 }
 
 void RLZ::store_sequence(char *sequence, char *filename,
@@ -480,110 +399,6 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
 
     // Call this to indicate the end of input to the factor writer
     facwriter.end_of_sequence();
-}
-
-void RLZCompress::relative_LZ_factorise(ifstream& infile, 
-                                        char *filename,
-                                        ofstream& outfile, bool state)
-{
-    int c;
-    uint64_t i, j, len, depth=0, saval=0;
-    size_t pl, pr, cl, cr;
-    bool runofns;
-    vector<unsigned char> substr;
-
-    i = 0;
-    st->Root(&pl, &pr);
-    len = 0;
-    runofns = false;
-    while (1)
-    {
-        // EOF reached
-        if ((c = infile.get()) == EOF) break;
-
-        // Invalid symbol in file
-        if (nucl_to_int[c] == 0)
-        {
-            cerr << "Invalid symbol " << c << " at position " << i;
-            cerr << " of sequence in " << filename << ".\n";
-            exit(1);
-        }
-
-        // Part of a run of Ns
-        if (c == 'n')
-        {
-            // A new run of Ns so print earlier factor and go back to
-            // the root of the suffix tree
-            if (!runofns && len > 0)
-            {
-                cout << st->Locate(pl,pl) << ' ' << len << endl;
-                st->Root(&pl, &pr); len = 0; depth = 0; saval = 0;
-            }
-            runofns = true;
-            len++;
-        }
-        else
-        {
-            // A run of Ns just ended so print the factor
-            if (runofns)
-            {
-                cout << refseqlen << ' ' << len << endl;
-                runofns = false;
-                len = 0;
-            }
-
-            // The previous suffix tree branch taken covers more than
-            // one symbol
-            if (len < depth)
-            {
-                // Couldn't extend current match so print factor
-                if ((unsigned char)c != int_to_nucl[refseq->getField(saval+len)])
-                {
-                    cout << saval << ' ' << len << endl;
-                    infile.unget(); i--;
-                    // Reset the search range to the entire suffix array
-                    st->Root(&pl, &pr); len = 0; depth = 0; saval = 0;
-                }
-                else
-                {
-                    len++; j++;
-                }
-            }
-            // Need to traverse to a new child
-            else
-            {
-                st->Child(pl, pr, (unsigned char)c, &cl, &cr);
-            
-                // Couldn't extend current match so print factor
-                if (cl == (uint64_t)(-1))
-                {
-                    cout << st->Locate(pl,pl) << ' ' << len << endl;
-                    infile.unget(); i--;
-                    // Reset the search range to the entire suffix array
-                    st->Root(&pl, &pr); len = 0; depth = 0; saval = 0;
-                }
-                // Set the suffix array boundaries to narrow the search
-                // for the next symbol
-                else
-                {
-                    depth = st->SDepth(cl, cr);
-                    if (len+1 < depth)
-                        saval = st->Locate(cl,cl);
-                    pl = cl; pr = cr; len++;
-                }
-            }
-        }
-        i++;
-    }
-
-    // Print last factor
-    if (len > 0)
-    {
-        if (runofns)
-            cout << refseqlen << ' ' << len << endl;
-        else
-            cout << st->Locate(pl,pl) << ' ' << len << endl;
-    }
 }
 
 void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
@@ -1566,25 +1381,6 @@ void FactorWriterIndex::write_index()
     // locate() queries
     if (!displayonly)
     {
-        /*
-        size_t seqlen = refseqlen+1;
-        char *sequence1 = new char[seqlen];
-        for (i=0; i<seqlen-1; i++)
-            sequence1[i] = int_to_nucl[refseq->getField(i)];
-        sequence1[i] = '\0';
-        TextIndexCSA *csa1 = new TextIndexCSA((uchar*)sequence1, seqlen, NULL);
-        csa1->save(outfile);
-        cout << "csa: " << csa1->getSize() << endl;
-        */
-
-        /*
-        // Construct suffix tree
-        SuffixTreeY sty(sequence, refseqlen+1);
-        sty.save(outfile);
-        cout << "st: " << sty.getSize() << endl;
-        delete [] sequence;
-        */
-
         // Write out the suffix array
         sa->save(outfile);
         cout << "sa: " << sa->getSize() << endl;

@@ -87,11 +87,6 @@ RLZ_index::RLZ_index(char *filename) :
 
     // Read in data structures necessary to just implement display()
 
-    // Read the meta data
-    BitReader breader = BitReader(idxfile);
-    //numfacs = breader.binary_to_int(sizeof(uint64_t)*8);
-    //numseqs = breader.binary_to_int(sizeof(uint64_t)*8);
-
     // Read the reference sequence
     refseq = new Array(idxfile);
 
@@ -128,12 +123,6 @@ RLZ_index::RLZ_index(char *filename) :
 
     // Read in the suffix array
     sa = new Array(idxfile);
-
-    // Read in the compressed suffix array
-    //sa = TextIndex::load(idxfile);
-
-    // Read in the suffix tree
-    //st = SuffixTree::load(idxfile);
 
     // Read the nested level list and level index
     nll = new Array(idxfile);
@@ -177,10 +166,6 @@ void RLZ_index::decode()
     j = 0;
     for (i=0; i<numseqs-1; i++)
     {
-        // Compressed sequence filenames start at index 1
-        //sprintf(filename, "%s.dec", filenames[i+1]);
-        //outfile.open(filename, ofstream::out);
-
         // Get the cumseqlens for the set of factors that belong to the
         // current sequence being decoded
         // Special case since facstarts->rank1(cumseqlens[i+1]-1) would result 
@@ -204,7 +189,6 @@ void RLZ_index::decode()
             // Print the length
             outfile << len << endl;
         }
-        //outfile.close();
     }
     
     outfile.close();
@@ -219,7 +203,7 @@ void RLZ_index::display()
     long totaltime = 0, totalchars = 0, totalqueries = 0; 
 
     // Read each query at a time 
-    while (scanf("%lu %lu %lu", &seq, &start, &end) == 3)
+    while (scanf("%llu %llu %llu", &seq, &start, &end) == 3)
     {
         // Reset the counters since we want to measure the time for
         // displaying after everything is in cache 
@@ -464,7 +448,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
     // First get the positions at which the pattern occurs in the
     // reference sequence
     sa_binary_search(intpattern, &lb, &rb);
-    //st_search((unsigned char*)pattern, ptnlen, lb, rb);
     if (lb != (uint64_t)-1 && rb != (uint64_t)-1)
     {
         // Add the reference sequence occurrences to the number of
@@ -478,8 +461,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
             {
                 occ.seq = 0;
                 occ.pos = sa->getField(i);
-                //occ.pos = sa->getSA(i);
-                //occ.pos = st->Locate(i,i);
                 occs.push_back(occ);
             }
         }
@@ -490,8 +471,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
             // Look for factors that contain this interval in all levels
             // of the nll
             pos = sa->getField(i);
-            //pos = sa->getSA(i);
-            //pos = st->Locate(i,i);
             for (j=0; j<numlevels; j++)
             {
                 poslb = levelidx->getField(j); 
@@ -540,7 +519,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // Search for the positions in the reference sequence at which
         // the current suffix occurs
         sa_binary_search(intsufptn, &lb, &rb);
-        //st->SLink(lb, rb, &lb, &rb);
 
         // The suffix doesn't occur in the reference sequence
         if (lb == (uint64_t)-1 || rb == (uint64_t)-1)
@@ -551,8 +529,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         for (l=lb; l<=rb; l++)
         {
             pos = sa->getField(l);
-            //pos = sa->getSA(l);
-            //pos = st->Locate(l, l);
             // Ignore start positions at which factors don't start
             if (!isstart->access(pos))
                 continue;
@@ -612,10 +588,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         }
     }
 
-    //st_search((unsigned char*)pattern, i-1, lb, rb);
-    //uint64_t depth = st->SDepth(lb, rb);
-    //uint64_t saval = st->Locate(lb, lb);
-
     // Split the pattern into two and binary search for factors ending
     // with the prefix then look for the complete occurrences
     for (; i<ptnlen; i++)
@@ -636,31 +608,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // Search for the positions in the reference sequence at which
         // the current prefix occurs
         sa_binary_search(intpfxptn, &lb, &rb);
-        /*
-        // The previous suffix tree branch taken covers more than
-        // one symbol
-        if (i-1 < depth)
-        {
-            // Couldn't extend current match
-            if (pattern[i-1] != int_to_nucl[refseq->getField(saval+i-1)])
-                break;
-        }
-        // Need to traverse to a new child
-        else
-        {
-            st->Child(lb, rb, (unsigned char)pattern[i-1], &lb, &rb);
-            // Couldn't extend current match
-            if (lb == (uint64_t)(-1))
-                break;
-            // Set the suffix array boundaries to narrow the search
-            // for the next symbol
-            else
-            {
-                depth = st->SDepth(lb, rb);
-                if (i+1 < depth) saval = st->Locate(lb, lb);
-            }
-        }
-        */
 
         // The prefix doesn't occur in the reference sequence
         if (lb == (uint64_t)-1 || rb == (uint64_t)-1)
@@ -671,8 +618,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         for (l=lb; l<=rb; l++)
         {
             pos = sa->getField(l);
-            //pos = sa->getSA(l);
-            //pos = st->Locate(l, l);
             // Ignore end positions at which factors don't end
             if (!isend->access(pos+pfxlen))
                 continue;
@@ -751,7 +696,6 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
             mid = (low + high) >> 1;
 
             midval = refseq->getField(sa->getField(mid)+i);
-            //midval = refseq->getField(sa->getSA(mid)+i);
             // Move left boundary to the middle
             if (midval < c)
                 low = mid + 1;
@@ -767,7 +711,6 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
                     break;
                 }
                 midvalleft = refseq->getField(sa->getField(mid-1)+i);
-                //midvalleft = refseq->getField(sa->getSA(mid-1)+i);
                 // Discard mid and values to the right of mid
                 if(midvalleft == midval)
                     high = mid - 1;
@@ -796,7 +739,6 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
 
 
             midval = refseq->getField(sa->getField(mid)+i);
-            //midval = refseq->getField(sa->getSA(mid)+i);
             // Move left bounary to the middle
             if (midval < c)
                 low = mid + 1;
@@ -812,7 +754,6 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
                     break;
                 }
                 midvalright = refseq->getField(sa->getField(mid+1)+i);
-                //midvalright = refseq->getField(sa->getSA(mid+1)+i);
                 // Discard mid and the ones to the left of mid
                 if(midvalright == midval)
                     low = mid + 1; 
@@ -1189,53 +1130,6 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
     }
 }
 
-void RLZ_index::st_search(unsigned char *pattern, unsigned int ptnlen, 
-                          uint64_t& lb, uint64_t& rb)
-{
-    unsigned char c;
-    uint64_t i, depth=0, saval=0;
-    size_t pl, pr;
-
-    st->Root(&pl, &pr);
-    i = 0;
-    for (i=0; i<ptnlen; i++)
-    {
-        c = pattern[i];
-        // The previous suffix tree branch taken covers more than
-        // one symbol
-        if (i < depth)
-        {
-            // Couldn't extend current match so print factor
-            if (c != int_to_nucl[refseq->getField(saval+i)])
-            {
-                lb = rb = (uint64_t)-1;
-                return;
-            }
-        }
-        // Need to traverse to a new child
-        else
-        {
-            st->Child(pl, pr, c, &lb, &rb);
-        
-            // Couldn't extend current match so print factor
-            if (lb == (uint64_t)(-1))
-            {
-                lb = rb = (uint64_t)-1;
-                return;
-            }
-            // Set the suffix array boundaries to narrow the search
-            // for the next symbol
-            else
-            {
-                depth = st->SDepth(lb, rb);
-                if (i+1 < depth)
-                    saval = st->Locate(lb, lb);
-                pl = lb; pr = rb;
-            }
-        }
-    }
-}
-
 inline uint64_t RLZ_index::factor_length(uint32_t facidx)
 {
     if (facidx+1 == numfacs)
@@ -1310,9 +1204,6 @@ int RLZ_index::size()
         // Contents of suffix array
         size += (unsigned int)sa->getSize();
         cerr << "suffix array: " << (unsigned int)sa->getSize() << " bytes\n";
-        // Contents of suffix tree
-        //size += (unsigned int)st->getSize();
-        //cerr << "suffix tree: " << (unsigned int)st->getSize() << " bytes\n";
         // Contents of nested level lists
         size += ((unsigned int)nll->getSize() + (unsigned int)levelidx->getSize());
         cerr << "nested level lists: "
