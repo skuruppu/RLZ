@@ -25,7 +25,6 @@ def readSequences(files):
 
 def generateDisplayTests(sequences, sequencelens, numqueries, querylen,
                          testfile, expoutfile):
-    random.seed(hash(len(sequencelens)))
     numseqs = len(sequences)
     i = 0
     while i < numqueries:
@@ -95,6 +94,9 @@ def main(args=None):
     # Open output files
     testfile = open(prefix + '.test', 'w')
     expoutfile = open(prefix + '.exp', 'w')
+
+    # Seed the random number generator with the output file prefix
+    random.seed(hash(prefix))
 
     # Generate tests for display query
     if qrytype == 'd':
