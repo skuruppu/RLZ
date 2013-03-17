@@ -62,7 +62,7 @@ int main (int argc, char **argv)
 
     // Check for the validity of the mode
     char mode = argv[1][0];
-    if (mode != 'c' || mode != 'd' || mode != 'l') {
+    if (mode != 'c' && mode != 'd' && mode != 'l') {
         cerr << usage;
         exit(1);
     }
