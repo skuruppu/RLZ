@@ -26,7 +26,7 @@ rlzindex: $(IDXOBJS)
 	$(CC) $(CFLAGS) -c $< 
 
 clean:
-	rm -f $(OBJS)
+	rm -f $(OBJS) $(IDXOBJS)
 
 clobber: clean
 	rm -f rlz
