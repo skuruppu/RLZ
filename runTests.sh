@@ -7,10 +7,13 @@
 # Email: shanika.kuruppu@gmail.com
 # Date: 17/03/2013
 
-set -e
-
 TESTDIR="`pwd`/test"
 FILES="`cat $TESTDIR/files`"
+
+# Build the executables
+make clobber
+make rlz rlzindex
+echo ""
 
 # Test if decompressed output is the same as the input
 testDecompress()
@@ -33,42 +36,40 @@ testDecompress()
     done
 }
 
-# Build the executables
-make clobber
-make rlz rlzindex
-echo ""
+runCompress()
+{
+    # Test standard compression and decompression
+    echo "[TEST] Standard RLZ compression and decompression"
+    ./rlz $FILES
+    ./rlz -d $FILES
+    echo ""
 
-# Test standard compression and decompression
-echo "[TEST] Standard RLZ compression and decompression"
-./rlz $FILES
-./rlz -d $FILES
-echo ""
+    testDecompress
 
-testDecompress
+    # Test with LISS option
+    echo "[TEST] RLZ compression with LISS option and decompression"
+    ./rlz -l $FILES
+    ./rlz -d $FILES
+    echo ""
 
-# Test with LISS option
-echo "[TEST] RLZ compression with LISS option and decompression"
-./rlz -l $FILES
-./rlz -d $FILES
-echo ""
+    testDecompress
 
-testDecompress
+    # Test with short factor encoding option
+    echo "[TEST] RLZ compression with short factor option and decompression"
+    ./rlz -s $FILES
+    ./rlz -d $FILES
+    echo ""
 
-# Test with short factor encoding option
-echo "[TEST] RLZ compression with short factor option and decompression"
-./rlz -s $FILES
-./rlz -d $FILES
-echo ""
+    testDecompress
 
-testDecompress
+    # Test with short factor encoding and LISS option
+    echo "[TEST] RLZ compression with short factor and LISS options, and decompression"
+    ./rlz -l -s $FILES
+    ./rlz -d $FILES
+    echo ""
 
-# Test with short factor encoding and LISS option
-echo "[TEST] RLZ compression with short factor and LISS options, and decompression"
-./rlz -l -s $FILES
-./rlz -d $FILES
-echo ""
-
-testDecompress
+    testDecompress
+}
 
 DISPLAYTESTDIR="$TESTDIR/display"
 DISPLAYFILES="`cat $DISPLAYTESTDIR/files`"
@@ -88,19 +89,22 @@ testDisplay()
     done
 }
 
-# Test display with display only
-echo "[TEST] RLZ display with display only mode"
-./rlz -i $IDXFILE -r $FILES > /dev/null 2>&1
-testDisplay
-rm $IDXFILE
-echo ""
+runDisplay()
+{
+    # Test display with display only
+    echo "[TEST] RLZ display with display only mode"
+    ./rlz -i $IDXFILE -r $FILES > /dev/null 2>&1
+    testDisplay
+    rm $IDXFILE
+    echo ""
 
-# Test display with display only
-echo "[TEST] RLZ display with whole index"
-./rlz -i $IDXFILE $FILES > /dev/null 2>&1
-testDisplay
-rm $IDXFILE
-echo ""
+    # Test display with display only
+    echo "[TEST] RLZ display with whole index"
+    ./rlz -i $IDXFILE $FILES > /dev/null 2>&1
+    testDisplay
+    rm $IDXFILE
+    echo ""
+}
 
 COUNTTESTDIR="$TESTDIR/count"
 COUNTFILES="`cat $COUNTTESTDIR/files`"
@@ -120,12 +124,15 @@ testCount()
     done
 }
 
-# Test count
-echo "[TEST] RLZ count"
-./rlz -i $IDXFILE $FILES > /dev/null 2>&1
-testCount
-rm $IDXFILE
-echo ""
+runCount()
+{
+    # Test count
+    echo "[TEST] RLZ count"
+    ./rlz -i $IDXFILE $FILES > /dev/null 2>&1
+    testCount
+    rm $IDXFILE
+    echo ""
+}
 
 LOCATETESTDIR="$TESTDIR/locate"
 LOCATEFILES="`cat $LOCATETESTDIR/files`"
@@ -149,12 +156,20 @@ testLocate()
     done
 }
 
-# Test locate
-echo "[TEST] RLZ locate"
-./rlz -i $IDXFILE $FILES > /dev/null 2>&1
-testLocate
-rm $IDXFILE
-echo ""
+runLocate()
+{
+    # Test locate
+    echo "[TEST] RLZ locate"
+    ./rlz -i $IDXFILE $FILES > /dev/null 2>&1
+    testLocate
+    rm $IDXFILE
+    echo ""
+}
+
+runCompress
+runDisplay
+runCount
+runLocate
 
 # Clean up
 make clobber
