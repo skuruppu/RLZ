@@ -49,22 +49,44 @@ using namespace cds_static;
 
 int main (int argc, char **argv)
 {
-    char usage[] = "Usage: rlz_index FILE\n \
+    char usage[] = "Usage: rlz_index MODE FILE\n \
+    MODE: Mode for using the index (d: display, c: count, l: locate)\n \
     FILE: Compressed index file\n";
 
     // Check for the correct number of arguments
-    if (argc < 2)
+    if (argc < 3)
     {
+        cerr << usage;
+        exit(1);
+    }
+
+    // Check for the validity of the mode
+    char mode = argv[1][0];
+    if (mode != 'c' || mode != 'd' || mode != 'l') {
         cerr << usage;
         exit(1);
     }
 
     initialise_nucl_converters();
 
-    RLZ_index *rlzidx = new RLZ_index(argv[1]);
+    RLZ_index *rlzidx = new RLZ_index(argv[2]);
 
     rlzidx->size();
-    rlzidx->display();
+    switch(mode)
+    {
+        case 'c':
+            rlzidx->count();
+            break;
+        case 'd':
+            rlzidx->display();
+            break;
+        case 'l':
+            rlzidx->locate();
+            break;
+        // Should never end up here
+        default:
+            break;
+    }
 
     return 0; 
 }
