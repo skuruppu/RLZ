@@ -6,10 +6,6 @@ CC = g++
 
 CFLAGS = -Wall -O9 -g
 
-INCLUDES = -I../lib/cds/include
-
-LFLAGS = -L../lib/cds/lib
-
 LIBS = -lcds -ldivsufsort64
 
 SRCS = RLZ.cpp Bits.cpp main.cpp RLZ_index.cpp
@@ -21,13 +17,13 @@ IDXOBJS = RLZ_index.o Bits.o
 all: rlz
 
 rlz: $(OBJS) 
-	$(CC) $(CFLAGS) -o rlz $(OBJS) $(INCLUDES) $(LFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) -o rlz $(OBJS) $(LIBS)
 
 rlzindex: $(IDXOBJS)
-	$(CC) $(CFLAGS) -o $@ $(IDXOBJS) $(INCLUDES) $(LFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(IDXOBJS) $(LIBS)
 
 %.o: %.cpp
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< 
+	$(CC) $(CFLAGS) -c $< 
 
 clean:
 	rm -f $(OBJS)
@@ -36,6 +32,6 @@ clobber: clean
 	rm -f rlz
 
 depend: $(SRCS)
-	$(CC) $(INCLUDES) -MM $(SRCS) > depend
+	$(CC) -MM $(SRCS) > depend
 
 include depend
