@@ -28,7 +28,7 @@ FILES="`cat $TESTDIR/files`"
 
 # Build the executables
 make clobber
-make rlz rlzindex
+make
 echo ""
 
 # Test if decompressed output is the same as the input
