@@ -14,10 +14,10 @@ OBJS = RLZ.o Bits.o main.o
 
 IDXOBJS = RLZ_index.o Bits.o
 
-all: rlz
+all: rlz rlzindex
 
 rlz: $(OBJS) 
-	$(CC) $(CFLAGS) -o rlz $(OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 
 rlzindex: $(IDXOBJS)
 	$(CC) $(CFLAGS) -o $@ $(IDXOBJS) $(LIBS)
@@ -26,10 +26,10 @@ rlzindex: $(IDXOBJS)
 	$(CC) $(CFLAGS) -c $< 
 
 clean:
-	rm -f $(OBJS)
+	rm -f $(OBJS) $(IDXOBJS)
 
 clobber: clean
-	rm -f rlz
+	rm -f rlz rlzindex
 
 depend: $(SRCS)
 	$(CC) -MM $(SRCS) > depend

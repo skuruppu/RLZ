@@ -30,7 +30,6 @@ using namespace std;
 int main(int argc, char **argv)
 {
     char usage[] = "Usage: rlz [OPTIONS] REF FILE1 FILE2 ...\n\
-    -c: Enable compressed suffix array (used with -i)\n\
     -d: Decompress (all other options ignored)\n\
     -e: Type of encoding (t: text, b: binary) (default: b)\n\
     -i: Output a self-index with given name (all options except -r ignored)\n\
@@ -42,7 +41,6 @@ int main(int argc, char **argv)
     char option, encoding='b', idxname[1024];
     bool isdecomp = false, isshort = false, isliss = false;
     bool isindex = false, displayonly = false;
-    bool usecsa = false;
 
     if (argc < 3)
     {
@@ -54,9 +52,6 @@ int main(int argc, char **argv)
     {
         switch (option)
         {
-            case 'c':
-                usecsa = true;
-                break;
             case 'd':
                 isdecomp = true;
                 break;
@@ -96,8 +91,7 @@ int main(int argc, char **argv)
     if (isindex)
     {
 
-        RLZCompress rlz(argv+optind, argc-optind, idxname, displayonly,
-                        usecsa);
+        RLZCompress rlz(argv+optind, argc-optind, idxname, displayonly);
 
         rlz.compress();
     }

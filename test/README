@@ -1,0 +1,12 @@
+The test sequences in the dataset are the DNA sequences of four S. paradoxus
+strains. Any nuclotides other than 'a', 'c', 'g', 't' and 'n' were replaced by
+the nucleotide 'n'.
+
+These sequences were obtained from the following source:
+ftp://ftp.sanger.ac.uk/pub/users/dmc/yeast/latest/para_assemblies.tgz
+Accessed: 13 Feb 2009
+
+Please refer to the Saccharomyces Genome Resequencing project website for
+further details on the research project that generated this data.
+
+http://www.sanger.ac.uk/research/projects/genomeinformatics/sgrp.html

@@ -1,4 +1,4 @@
-/* RLZ_index display()
+/* RLZ index
  * Copyright (C) 2011 Shanika Kuruppu
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,7 +27,6 @@
 #include <Array.h>
 #include <BitSequenceSDArray.h>
 #include <BitSequence.h>
-#include <SuffixTree.h>
 #include <TextIndex.h>
 
 typedef struct occurrence
@@ -88,7 +87,6 @@ class RLZ_index
 
         /* Factor positions as a bit vector using logn bits per position */
         cds_utils::Array *positions;
-        //cds_static::WaveletTreeNoptrs *positions;
 
         /* Factor facstarts in a rank-select data structure */
         cds_static::BitSequenceSDArray *facstarts;
@@ -136,12 +134,8 @@ class RLZ_index
         /* Locate related data structures and methods                        */
         /*-------------------------------------------------------------------*/
 
-        // Suffix tree of the reference sequence
-        cds_static::SuffixTree *st;
-
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
-        //cds_static::TextIndex *sa;
 
         // Nested level lists of the sorted factors
         cds_utils::Array *nll;
@@ -175,16 +169,6 @@ class RLZ_index
         void sa_binary_search(cds_utils::Array &pattern, uint64_t *lb,
                               uint64_t *rb);
 
-
-        /** Searches the suffix tree for the given pattern and returns
-         * the suffix array range.
-         * @param pattern Pattern to search for
-         * @param ptnlen Length of the pattern being searched for
-         * @param lb Variable to store the return left boundary
-         * @param rb Variable to store the return right boundary
-         */
-        void st_search(unsigned char *pattern, unsigned int ptnlen, 
-                       uint64_t& lb, uint64_t& rb);
 
         /** Returns the boundaries of a level in the nested level list
          * that contains the given interval represented by the variables

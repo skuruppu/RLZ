@@ -27,7 +27,6 @@
 #include <algorithm>
 #include <SuffixTree.h>
 #include <Array.h>
-#include <TextIndexCSA.h>
 #include "Bits.h"
 
 #ifdef _cplusplus
@@ -217,12 +216,10 @@ class FactorWriterIndex : public FactorWriter
          * @param refseqlen Length of reference sequence
          * @param logrefseqlen Number of bits for encoding positions
          * @param displayonly Output only display() query structures
-         * @param usecsa Use a compressed suffix array
          */
         FactorWriterIndex(ofstream& outfile, cds_utils::Array *refseq,
                           cds_utils::Array *sa, uint64_t refseqlen,
-                          uint64_t logrefseqlen, bool displayonly,
-                          bool usecsa);
+                          uint64_t logrefseqlen, bool displayonly);
 
 
         /** Destructor for the class. */
@@ -267,9 +264,6 @@ class FactorWriterIndex : public FactorWriter
         // If this is true, only write the data structures required to
         // implement display() query
         bool displayonly;
-
-        // If this is true, use a compressed suffix array
-        bool usecsa;
 
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
@@ -463,18 +457,9 @@ class RLZCompress : RLZ
          * @param numfiles Number of files in the dataset
          * @param idxname Name to give to the index
          * @param displayonly Only implement display() query
-         * @param usecsa Use a compressed suffix array
          */
         RLZCompress(char **filenames, uint64_t numfiles, char *idxname,
-                    bool displayonly, bool usecsa);
-
-        /** Temporary constructor that implements the suffix tree
-         * instead of a suffix array.
-         * @param filenames Filenames for sequences to be compressed
-         * @param numfiles Number of files in the dataset
-         * @param state Random parameter to overload the constructor
-         */
-        RLZCompress(char **filenames, uint64_t numfiles, bool state);
+                    bool displayonly);
 
         /** Destructor for the class. */
         ~RLZCompress();
@@ -483,9 +468,6 @@ class RLZCompress : RLZ
         void compress();
 
     private:
-
-        // Suffix tree of the reference sequence
-        cds_static::SuffixTree *st;
 
         // Suffix array of the reference sequence
         cds_utils::Array *sa;
@@ -506,9 +488,6 @@ class RLZCompress : RLZ
         // implement display() query
         bool displayonly;
 
-        // If this is true, use a compressed suffix array
-        bool usecsa;
-
         /** Read the reference sequence and construct the suffix array
          */
         void read_refseq_and_construct_sa();
@@ -525,17 +504,6 @@ class RLZCompress : RLZ
          */
         void relative_LZ_factorise(ifstream& infile, char *filename,
                                    FactorWriter& facwriter);
-
-        /** Conducts the relative Lempel-Ziv compression of the sequence
-         * inside the infile and writes the output to outfile.
-         * @param infile Input file stream
-         * @param filename Name of the input file
-         * @param outfile Output file stream
-         * @param state random parameter to overload the method
-         */
-        void relative_LZ_factorise(ifstream& infile, char *filename,
-                                   ofstream& outfile, bool state);
-
 
         /** Conducts a binary search in the suffix array for a symbol at
          * a particular offset of the suffixes.
