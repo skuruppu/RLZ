@@ -23,9 +23,13 @@
  */
 
 #include <getopt.h>
+
+#include "lib_wrapper/wrapper.h"
 #include "RLZ.h"
 
 using namespace std;
+
+lib_wrapper::Library GLOBAL_LIB_TYPE;
 
 int main(int argc, char **argv)
 {
@@ -109,6 +113,8 @@ int main(int argc, char **argv)
 
         rlzd.decompress();
     }
+
+    GLOBAL_LIB_TYPE = lib_wrapper::LIBSDSL;
 
     return 0;
 }

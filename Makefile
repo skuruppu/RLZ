@@ -10,13 +10,13 @@ LIBS = -lcds -ldivsufsort64
 
 SRCS = RLZ.cpp Bits.cpp main.cpp RLZ_index.cpp
 
-OBJS = RLZ.o Bits.o main.o
+OBJS = RLZ.o Bits.o main.o lib_wrapper/wrapper.o
 
 IDXOBJS = RLZ_index.o Bits.o
 
 all: rlz rlzindex
 
-rlz: $(OBJS) 
+rlz: wrapper $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 
 rlzindex: $(IDXOBJS)
@@ -24,6 +24,9 @@ rlzindex: $(IDXOBJS)
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c $< 
+
+wrapper:
+	$(MAKE) -C lib_wrapper
 
 clean:
 	rm -f $(OBJS) $(IDXOBJS)
