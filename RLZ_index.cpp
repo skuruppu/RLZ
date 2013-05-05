@@ -110,7 +110,7 @@ RLZ_index::RLZ_index(char *filename) :
     // Read in data structures necessary to just implement display()
 
     // Read the reference sequence
-    refseq = new Array(idxfile);
+    refseq = lib_wrapper::Array::create(idxfile);
 
     // Read the factor start positions
     facstarts = BitSequenceSDArray::load(idxfile);
@@ -119,10 +119,10 @@ RLZ_index::RLZ_index(char *filename) :
     isstart = BitSequenceRRR::load(idxfile);
 
     // Create a compact array to store the positions
-    positions = new Array(idxfile);
+    positions = lib_wrapper::Array::create(idxfile);
 
     // Read the cumulative sequence lengths
-    cumseqlens = new Array(idxfile);
+    cumseqlens = lib_wrapper::Array::create(idxfile);
 
     // Calculate the index variables
     numfacs = positions->getLength();
@@ -144,11 +144,11 @@ RLZ_index::RLZ_index(char *filename) :
     // queries
 
     // Read in the suffix array
-    sa = new Array(idxfile);
+    sa = lib_wrapper::Array::create(idxfile);
 
     // Read the nested level list and level index
-    nll = new Array(idxfile);
-    levelidx = new Array(idxfile);
+    nll = lib_wrapper::Array::create(idxfile);
+    levelidx = lib_wrapper::Array::create(idxfile);
     numlevels = levelidx->getLength()-1;
 
     // Read the isend bit vectors
@@ -461,15 +461,16 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
     occ_t occ;
 
     // Convert the pattern to use 3bpb
-    Array intpattern(ptnlen, NUCLALPHASIZE);
+    lib_wrapper::Array *intpattern = lib_wrapper::Array::create(ptnlen,
+                                        NUCLALPHASIZE);
     for (i=0; i<ptnlen; i++)
-        intpattern.setField(i, nucl_to_int[(int)pattern[i]]);
+        intpattern->setField(i, nucl_to_int[(int)pattern[i]]);
 
     occurrences = 0;
     // Search for patterns occurring within factors
     // First get the positions at which the pattern occurs in the
     // reference sequence
-    sa_binary_search(intpattern, &lb, &rb);
+    sa_binary_search((*intpattern), &lb, &rb);
     if (lb != (uint64_t)-1 && rb != (uint64_t)-1)
     {
         // Add the reference sequence occurrences to the number of
@@ -529,18 +530,20 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         suflen = ptnlen-i;
 
         // Copy the 3bpb version of the pattern suffix
-        Array intsufptn(suflen, NUCLALPHASIZE);
+        lib_wrapper::Array *intsufptn = lib_wrapper::Array::create(suflen,
+                                            NUCLALPHASIZE);
         for (j=i; j<ptnlen; j++)
-            intsufptn.setField(j-i, nucl_to_int[(int)pattern[j]]);
+            intsufptn->setField(j-i, nucl_to_int[(int)pattern[j]]);
 
         // Copy the 3bpb version of the pattern prefix
-        Array intpfxptn(pfxlen, NUCLALPHASIZE);
+        lib_wrapper::Array *intpfxptn = lib_wrapper::Array::create(pfxlen,
+                                            NUCLALPHASIZE);
         for (j=0; j<pfxlen; j++)
-            intpfxptn.setField(j, nucl_to_int[(int)pattern[j]]);
+            intpfxptn->setField(j, nucl_to_int[(int)pattern[j]]);
 
         // Search for the positions in the reference sequence at which
         // the current suffix occurs
-        sa_binary_search(intsufptn, &lb, &rb);
+        sa_binary_search((*intsufptn), &lb, &rb);
 
         // The suffix doesn't occur in the reference sequence
         if (lb == (uint64_t)-1 || rb == (uint64_t)-1)
@@ -589,7 +592,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // Compare the prefix with the equivalent length
                     // suffix of the previous factor and if they are
                     // equal then we have a match
-                    if (compare_substr_to_refseq(intpfxptn,
+                    if (compare_substr_to_refseq((*intpfxptn),
                         prevpos+prevlen-pfxlen, pfxlen))
                     {
                         occurrences ++; 
@@ -608,6 +611,9 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                 }
             }
         }
+
+        delete intsufptn;
+        delete intpfxptn;
     }
 
     // Split the pattern into two and binary search for factors ending
@@ -618,18 +624,20 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         suflen = ptnlen-i;
 
         // Copy the 3bpb version of the prefix
-        Array intpfxptn(i, NUCLALPHASIZE);
+        lib_wrapper::Array *intpfxptn = lib_wrapper::Array::create(i,
+                                            NUCLALPHASIZE);
         for (j=0; j<i; j++)
-            intpfxptn.setField(j, nucl_to_int[(int)pattern[j]]);
+            intpfxptn->setField(j, nucl_to_int[(int)pattern[j]]);
 
         // Copy the 3bpb version of the suffix
-        Array intsufptn(ptnlen-i, NUCLALPHASIZE);
+        lib_wrapper::Array *intsufptn = lib_wrapper::Array::create(ptnlen-i,
+                                            NUCLALPHASIZE);
         for (; j<ptnlen; j++)
-            intsufptn.setField(j-i, nucl_to_int[(int)pattern[j]]);
+            intsufptn->setField(j-i, nucl_to_int[(int)pattern[j]]);
 
         // Search for the positions in the reference sequence at which
         // the current prefix occurs
-        sa_binary_search(intpfxptn, &lb, &rb);
+        sa_binary_search((*intpfxptn), &lb, &rb);
 
         // The prefix doesn't occur in the reference sequence
         if (lb == (uint64_t)-1 || rb == (uint64_t)-1)
@@ -674,7 +682,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // Compare the suffix with the equivalent length
                     // prefix of the next factor and if they are
                     // equal then we have a match
-                    if (compare_substr_to_refseq(intsufptn, nextpos,
+                    if (compare_substr_to_refseq((*intsufptn), nextpos,
                         suflen))
                     {
                         occurrences ++; 
@@ -693,12 +701,17 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                 }
             }
         }
+
+        delete intsufptn;
+        delete intpfxptn;
     }
+
+    delete intpattern;
 
     return occurrences;
 }
 
-void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb,
+void RLZ_index::sa_binary_search(lib_wrapper::Array &pattern, uint64_t *lb,
                                  uint64_t *cr)
 {
     uint64_t low, high, mid, pl, pr; 
@@ -1161,7 +1174,7 @@ inline uint64_t RLZ_index::factor_length(uint32_t facidx)
     return facstarts->select1(facidx+2) - facstarts->select1(facidx+1);
 }
 
-inline bool RLZ_index::compare_substr_to_refseq(Array& substr,
+inline bool RLZ_index::compare_substr_to_refseq(lib_wrapper::Array& substr,
                        uint64_t start, uint64_t len)
 {
     uint64_t i, j;

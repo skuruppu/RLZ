@@ -24,10 +24,11 @@
 #include <stdio.h>
 #include <vector>
 
-#include <Array.h>
 #include <BitSequenceSDArray.h>
 #include <BitSequence.h>
 #include <TextIndex.h>
+
+#include "lib_wrapper/wrapper.h"
 
 typedef struct occurrence
 {
@@ -83,16 +84,16 @@ class RLZ_index
 
         /* Reference sequence as a bit vector with 3bpb encoding
          * {a,c,g,t,n} */
-        cds_utils::Array *refseq;
+        lib_wrapper::Array *refseq;
 
         /* Factor positions as a bit vector using logn bits per position */
-        cds_utils::Array *positions;
+        lib_wrapper::Array *positions;
 
         /* Factor facstarts in a rank-select data structure */
         cds_static::BitSequenceSDArray *facstarts;
 
         /* Sequence cumseqlens for numseqs sequences */
-        cds_utils::Array *cumseqlens;
+        lib_wrapper::Array *cumseqlens;
 
         /** Reads the reference sequence into memory and fills in the
          * refseqlen and refseq variables. Also creates the suffix array
@@ -135,11 +136,11 @@ class RLZ_index
         /*-------------------------------------------------------------------*/
 
         // Suffix array of the reference sequence
-        cds_utils::Array *sa;
+        lib_wrapper::Array *sa;
 
         // Nested level lists of the sorted factors
-        cds_utils::Array *nll;
-        cds_utils::Array *levelidx;
+        lib_wrapper::Array *nll;
+        lib_wrapper::Array *levelidx;
         uint32_t numlevels;
 
         // Compressed bit vectors to indicate at which positions in the
@@ -166,7 +167,7 @@ class RLZ_index
          * @param lb Variable to store the return left boundary
          * @param rb Variable to store the return right boundary
          */
-        void sa_binary_search(cds_utils::Array &pattern, uint64_t *lb,
+        void sa_binary_search(lib_wrapper::Array &pattern, uint64_t *lb,
                               uint64_t *rb);
 
 
@@ -211,7 +212,7 @@ class RLZ_index
          * @param len Length of the substring to search for
          * @return Returns true if the substrings are equal and false otherwise
          */
-        inline bool compare_substr_to_refseq(cds_utils::Array& substr, 
+        inline bool compare_substr_to_refseq(lib_wrapper::Array& substr, 
                                              uint64_t start, 
                                              uint64_t len);
 };
