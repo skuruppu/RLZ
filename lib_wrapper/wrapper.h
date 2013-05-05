@@ -52,6 +52,8 @@ class Array
         virtual void save(ofstream&) = 0;
 
         virtual size_t getSize() = 0;
+
+        virtual uint64_t getLength() = 0;
 };
 
 class CDSArray : public Array
@@ -73,6 +75,8 @@ class CDSArray : public Array
         void save(ofstream&);
 
         size_t getSize();
+
+        uint64_t getLength();
 
     private:
 

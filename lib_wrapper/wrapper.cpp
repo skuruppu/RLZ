@@ -97,4 +97,9 @@ size_t CDSArray::getSize()
     return this->cdsarray->getSize();
 }
 
+uint64_t CDSArray::getLength()
+{
+    return this->cdsarray->getLength();
+}
+
 }
