@@ -12,14 +12,14 @@ SRCS = RLZ.cpp Bits.cpp main.cpp RLZ_index.cpp
 
 OBJS = RLZ.o Bits.o main.o lib_wrapper/wrapper.o
 
-IDXOBJS = RLZ_index.o Bits.o
+IDXOBJS = RLZ_index.o Bits.o lib_wrapper/wrapper.o
 
 all: rlz rlzindex
 
 rlz: wrapper $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LIBS)
 
-rlzindex: $(IDXOBJS)
+rlzindex: wrapper $(IDXOBJS)
 	$(CC) $(CFLAGS) -o $@ $(IDXOBJS) $(LIBS)
 
 %.o: %.cpp
