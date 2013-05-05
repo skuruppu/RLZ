@@ -21,6 +21,8 @@
  * Authors: Shanika Kuruppu
  */
 
+#include "Array.h"
+
 namespace lib_wrapper
 {
 
@@ -29,6 +31,52 @@ enum Library
 {
     LIBCDS,
     LIBSDSL
+};
+
+extern Library GLOBAL_LIB_TYPE;
+
+class Array
+{
+    public:
+
+        static Array* create(const uint64_t, const uint64_t);
+
+        static Array* create(ifstream&);
+
+        virtual ~Array();
+
+        virtual uint64_t getField(const uint64_t) = 0;
+
+        virtual uint64_t setField(const uint64_t, const uint64_t) = 0;
+
+        virtual void save(ofstream&) = 0;
+
+        virtual size_t getSize() = 0;
+};
+
+class CDSArray : public Array
+{
+    public:
+
+        CDSArray();
+
+        CDSArray(const uint64_t, const uint64_t);
+
+        CDSArray(ifstream&);
+
+        ~CDSArray();
+
+        uint64_t getField(const uint64_t);
+
+        uint64_t setField(const uint64_t, const uint64_t);
+
+        void save(ofstream&);
+
+        size_t getSize();
+
+    private:
+
+        cds_utils::Array *cdsarray;
 };
 
 }
