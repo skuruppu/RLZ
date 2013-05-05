@@ -80,7 +80,8 @@ void RLZCompress::read_refseq_and_construct_sa()
     refseqlen = seqlen-1;
 
     // Read the reference sequence
-    refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
+    refseq = lib_wrapper::Array::create(refseqlen+1,
+                ((unsigned)1<<BITSPERBASE)-1);
     store_sequence(sequence, filenames[0], refseq, refseqlen);
 
     // Construct suffix array
@@ -92,7 +93,7 @@ void RLZCompress::read_refseq_and_construct_sa()
         exit(1);
     }
 
-    sa = new Array(refseqlen+1, refseqlen);
+    sa = lib_wrapper::Array::create(refseqlen+1, refseqlen);
     for (i=0; i<=refseqlen; i++)
     {
         sa->setField(i, sufarray[i]);
@@ -131,7 +132,8 @@ void RLZCompress::read_refseq_and_sa()
         refseqlen--;
 
         // Read the reference sequence
-        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
+        refseq = lib_wrapper::Array::create(refseqlen+1,
+                    ((unsigned)1<<BITSPERBASE)-1);
         store_sequence(sequence, filenames[0], refseq, refseqlen);
 
         // Construct suffix array
@@ -143,7 +145,7 @@ void RLZCompress::read_refseq_and_sa()
             exit(1);
         }
 
-        sa = new Array(refseqlen+1, refseqlen);
+        sa = lib_wrapper::Array::create(refseqlen+1, refseqlen);
         for (i=0; i<=refseqlen; i++)
         {
             sa->setField(i, sufarray[i]);
@@ -160,7 +162,7 @@ void RLZCompress::read_refseq_and_sa()
     else
     {
         // Load suffix array from saved suffix array file
-        sa = new Array(infile);
+        sa = lib_wrapper::Array::create(infile);
         infile.close();
         
         // Open reference sequence file
@@ -177,7 +179,8 @@ void RLZCompress::read_refseq_and_sa()
         infile.seekg(0, ios::beg);
 
         // Read the reference sequence
-        refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
+        refseq = lib_wrapper::Array::create(refseqlen+1,
+                    ((unsigned)1<<BITSPERBASE)-1);
         store_sequence(infile, filenames[0], refseq, refseqlen);
         infile.close();
 
@@ -195,7 +198,7 @@ RLZCompress::~RLZCompress()
 }
 
 void RLZ::store_sequence(char *sequence, char *filename,
-                         Array *dest, uint64_t length)
+                         lib_wrapper::Array *dest, uint64_t length)
 {
     uint64_t i;
     unsigned int v;
@@ -221,7 +224,7 @@ void RLZ::store_sequence(char *sequence, char *filename,
 }
 
 void RLZ::store_sequence(ifstream &infile, char *filename,
-                         Array *dest, uint64_t length)
+                         lib_wrapper::Array *dest, uint64_t length)
 {
     uint64_t i;
     int c;
@@ -517,7 +520,8 @@ RLZDecompress::RLZDecompress(char **filenames, uint64_t numfiles)
     infile.seekg(0, ios::beg);
 
     // Read the reference sequence
-    refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
+    refseq = lib_wrapper::Array::create(refseqlen+1,
+                ((unsigned)1<<BITSPERBASE)-1);
     store_sequence(infile, filenames[0], refseq, refseqlen);
     infile.close();
 
@@ -621,8 +625,9 @@ FactorWriter::FactorWriter() :
     facwriter(NULL) {}
 
 FactorWriter::FactorWriter(ofstream& outfile, char encoding,
-                           bool isshort, bool isliss, Array *refseq, 
-                           uint64_t refseqlen, uint64_t logrefseqlen)
+                           bool isshort, bool isliss,
+                           lib_wrapper::Array *refseq, uint64_t refseqlen,
+                           uint64_t logrefseqlen)
 {
     unsigned char encbyte = 0;
 
@@ -796,8 +801,8 @@ void FactorWriter::find_LISS(vector<uint64_t>& a, vector<uint64_t>& b)
 }
 
 FactorWriterText::FactorWriterText(ofstream& outfile, bool isshort, 
-                                   bool isliss, Array *refseq, uint64_t
-                                   refseqlen, uint64_t logrefseqlen) :
+                                   bool isliss, lib_wrapper::Array *refseq,
+                                   uint64_t refseqlen, uint64_t logrefseqlen) :
     outfile(outfile)
 {
     this->refseq = refseq;
@@ -879,7 +884,7 @@ void FactorWriterText::end_of_sequence()
 }
 
 FactorWriterBinary::FactorWriterBinary(ofstream& outfile, bool isshort,
-                                       bool isliss, Array *refseq,
+                                       bool isliss, lib_wrapper::Array *refseq,
                                        uint64_t refseqlen,
                                        uint64_t logrefseqlen)
 {
@@ -1295,8 +1300,8 @@ public:
 };
 
 FactorWriterIndex::FactorWriterIndex(ofstream& outfile, 
-                                     cds_utils::Array *refseq, 
-                                     cds_utils::Array *sa, 
+                                     lib_wrapper::Array *refseq, 
+                                     lib_wrapper::Array *sa, 
                                      uint64_t refseqlen, 
                                      uint64_t logrefseqlen,
                                      bool displayonly) :
@@ -1600,8 +1605,9 @@ void FactorWriterIndex::construct_nested_level_list
 
     // Allocate memory for storing the indices of the positions for each
     // nested level 
-    nll = new Array(sortedpositions.size(), numfacs-1);
-    levelidx = new Array(nestedlevels.size()+1, sortedpositions.size());
+    nll = lib_wrapper::Array::create(sortedpositions.size(), numfacs-1);
+    levelidx = lib_wrapper::Array::create(nestedlevels.size()+1,
+                    sortedpositions.size());
     numlevels = nestedlevels.size();
 
     k = 0;

@@ -26,8 +26,9 @@
 #include <vector>
 #include <algorithm>
 #include <SuffixTree.h>
-#include <Array.h>
+
 #include "Bits.h"
+#include "lib_wrapper/wrapper.h"
 
 #ifdef _cplusplus
 #define _STDC_CONSTANT_MACROS
@@ -54,7 +55,7 @@ class FactorWriter
          * @param logrefseqlen Number of bits for encoding positions
          */
         FactorWriter(ofstream& outfile, char encoding, bool isshort,
-                     bool isliss, cds_utils::Array *refseq,
+                     bool isliss, lib_wrapper::Array *refseq,
                      uint64_t refseqlen, uint64_t logrefseqlen);
 
         /** Destructor for the class. */
@@ -89,7 +90,7 @@ class FactorWriter
         
         // Reference sequence as a bit vector with 3bpb encoding
         // {a,c,g,t,n}
-        cds_utils::Array *refseq;
+        lib_wrapper::Array *refseq;
         uint64_t refseqlen;
         uint64_t logrefseqlen;
 
@@ -126,7 +127,7 @@ class FactorWriterText : public FactorWriter
          * @param refseqlen Length of reference sequence
          */
         FactorWriterText(ofstream& outfile, bool isshort, bool isliss,
-                         cds_utils::Array *refseq, uint64_t refseqlen,
+                         lib_wrapper::Array *refseq, uint64_t refseqlen,
                          uint64_t logrefseqlen);
         
         /** Output an RLZ factor.
@@ -168,7 +169,7 @@ class FactorWriterBinary : public FactorWriter
          * @param logrefseqlen Number of bits for encoding positions
          */
         FactorWriterBinary(ofstream& outfile, bool isshort, bool isliss,
-                           cds_utils::Array *refseq, uint64_t refseqlen,
+                           lib_wrapper::Array *refseq, uint64_t refseqlen,
                            uint64_t logrefseqlen);
 
         /** Destructor for the class. */
@@ -217,8 +218,8 @@ class FactorWriterIndex : public FactorWriter
          * @param logrefseqlen Number of bits for encoding positions
          * @param displayonly Output only display() query structures
          */
-        FactorWriterIndex(ofstream& outfile, cds_utils::Array *refseq,
-                          cds_utils::Array *sa, uint64_t refseqlen,
+        FactorWriterIndex(ofstream& outfile, lib_wrapper::Array *refseq,
+                          lib_wrapper::Array *sa, uint64_t refseqlen,
                           uint64_t logrefseqlen, bool displayonly);
 
 
@@ -266,11 +267,11 @@ class FactorWriterIndex : public FactorWriter
         bool displayonly;
 
         // Suffix array of the reference sequence
-        cds_utils::Array *sa;
+        lib_wrapper::Array *sa;
 
         // Nested level lists of the sorted factors
-        cds_utils::Array *nll;
-        cds_utils::Array *levelidx;
+        lib_wrapper::Array *nll;
+        lib_wrapper::Array *levelidx;
         uint32_t numlevels;
 
         // Sequence start positions in factors
@@ -407,7 +408,7 @@ class RLZ
         
         // Reference sequence as a bit vector with 3bpb encoding
         // {a,c,g,t,n}
-        cds_utils::Array *refseq;
+        lib_wrapper::Array *refseq;
         uint64_t refseqlen;
         uint64_t logrefseqlen;
 
@@ -423,7 +424,7 @@ class RLZ
          * @param length Number of symbols to store
          */
         virtual void store_sequence(char *sequence, char *filename,
-                                    Array *dest, uint64_t length);
+                                    lib_wrapper::Array *dest, uint64_t length);
 
         /** Store a sequence containing nucleotides from alphabet
          * NUCLALPHA using BITSPERBASE bits each.
@@ -433,7 +434,7 @@ class RLZ
          * @param length Number of symbols to store
          */
         virtual void store_sequence(ifstream& infile, char *filename,
-                                    Array *dest, uint64_t length);
+                                    lib_wrapper::Array *dest, uint64_t length);
 
 };
 
@@ -470,7 +471,7 @@ class RLZCompress : RLZ
     private:
 
         // Suffix array of the reference sequence
-        cds_utils::Array *sa;
+        lib_wrapper::Array *sa;
 
         // Type of encoding
         char encoding;
