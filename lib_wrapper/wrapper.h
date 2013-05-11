@@ -114,6 +114,11 @@ class CDSArray
     private:
 
         cds_utils::Array *cdsarray;
+
+        // Disable copy constructor and assignment operator
+        CDSArray(const CDSArray& other);
+
+        CDSArray& operator=(const CDSArray& other);
 };
 
 }
