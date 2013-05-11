@@ -192,22 +192,22 @@ void RLZ_index::decode()
         // current sequence being decoded
         // Special case since facstarts->rank1(cumseqlens[i+1]-1) would result 
         // in a seg fault
-        if (cumseqlens->getField(i+1) == 0)
+        if ((*cumseqlens)[i+1] == 0)
             maxfacnum = j +
-                        facstarts->rank1(cumseqlens->getField(i+2)-1);
+                        facstarts->rank1((*cumseqlens)[i+2]-1);
         else
             maxfacnum = j +
-                        facstarts->rank1(cumseqlens->getField(i+2)-1) -
-                        facstarts->rank1(cumseqlens->getField(i+1)-1);
+                        facstarts->rank1((*cumseqlens)[i+2]-1) -
+                        facstarts->rank1((*cumseqlens)[i+1]-1);
         for (; j<maxfacnum; j++)
         {
             // Get the length of the factor
             if (j+1 == numfacs)
-                len = cumseqlens->getField(numseqs+1) - facstarts->select1(j+1);
+                len = (*cumseqlens)[numseqs+1] - facstarts->select1(j+1);
             else
                 len = facstarts->select1(j+2) - facstarts->select1(j+1);
             // Standard factor decoding
-            outfile << positions->getField(j) << ' ';
+            outfile << (*positions)[j] << ' ';
             // Print the length
             outfile << len << endl;
         }
@@ -268,7 +268,7 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
     if (seq == 0)
     {
         for (i=start; i<end; i++)
-            substring.push_back(refseq->getField(i));
+            substring.push_back((*refseq)[i]);
         
         // End timer 
         gettimeofday(&tv, NULL);
@@ -277,8 +277,8 @@ long RLZ_index::display(uint64_t seq, uint64_t start, uint64_t end, vector <uint
         return (msec2 - msec1);
     }
 
-    return display(cumseqlens->getField(seq)+start,
-                   cumseqlens->getField(seq)+end, substring);
+    return display((*cumseqlens)[seq]+start,
+                   (*cumseqlens)[seq]+end, substring);
 }
 
 long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
@@ -294,12 +294,12 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
     rk = facstarts->rank1(start);
     b = facstarts->select1(rk);
     if (rk == numfacs)
-        l = cumseqlens->getField(numseqs) - b;
+        l = (*cumseqlens)[numseqs] - b;
     else
         l = facstarts->select1(rk+1) - b;
 
     // Just a standard factor
-    p = positions->getField(rk-1);
+    p = (*positions)[rk-1];
     // A substring of Ns
     if (p == refseqlen)
     {
@@ -314,7 +314,7 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
         s = p+start-b;
         for (i=s; i<(p+l) && i<(s+end-start) && i<refseqlen; i++)
         {
-            substring.push_back(refseq->getField(i));
+            substring.push_back((*refseq)[i]);
         }
     }
 
@@ -328,12 +328,12 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
             rk ++;
             b = facstarts->select1(rk);
             if (rk == numfacs)
-                l = cumseqlens->getField(numseqs) - b;
+                l = (*cumseqlens)[numseqs] - b;
             else
                 l = facstarts->select1(rk+1) - b;
 
             // Just a standard factor
-            p = positions->getField(rk-1);
+            p = (*positions)[rk-1];
 
             // A substring of Ns
             if (p == refseqlen)
@@ -349,7 +349,7 @@ long RLZ_index::display(uint64_t start, uint64_t end, vector <uint> &substring)
                 s = p+start-b;
                 for (i=s; i<(p+l) && i<(s+end-start) && i<refseqlen; i++)
                 {
-                    substring.push_back(refseq->getField(i));
+                    substring.push_back((*refseq)[i]);
                 }
             }
 
@@ -463,7 +463,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
     // Convert the pattern to use 3bpb
     Array *intpattern = new Array(ptnlen, NUCLALPHASIZE);
     for (i=0; i<ptnlen; i++)
-        intpattern->setField(i, nucl_to_int[(int)pattern[i]]);
+        (*intpattern)[i] = nucl_to_int[(int)pattern[i]];
 
     occurrences = 0;
     // Search for patterns occurring within factors
@@ -482,7 +482,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
             for (i=lb; i<=rb; i++)
             {
                 occ.seq = 0;
-                occ.pos = sa->getField(i);
+                occ.pos = (*sa)[i];
                 occs.push_back(occ);
             }
         }
@@ -492,11 +492,11 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         {
             // Look for factors that contain this interval in all levels
             // of the nll
-            pos = sa->getField(i);
+            pos = (*sa)[i];
             for (j=0; j<numlevels; j++)
             {
-                poslb = levelidx->getField(j); 
-                posrb = levelidx->getField(j+1) - 1;
+                poslb = (*levelidx)[j];
+                posrb = (*levelidx)[j+1] - 1;
                 facs_binary_search(pos, pos+ptnlen, &poslb, &posrb);
                 if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
                     continue;
@@ -508,11 +508,11 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                 {
                     for (k=poslb; k<=posrb; k++)
                     {
-                        facidx = nll->getField(k);
+                        facidx = (*nll)[k];
                         seq = seqfacstart->rank1(facidx);
                         abspos = facstarts->select1(facidx+1)
-                                 + (pos - positions->getField(facidx));
-                        occpos = abspos - cumseqlens->getField(seq);
+                                 + (pos - (*positions)[facidx]);
+                        occpos = abspos - (*cumseqlens)[seq];
                         occ.seq = seq; occ.pos = occpos;
                         occs.push_back(occ);
                     }
@@ -531,12 +531,12 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // Copy the 3bpb version of the pattern suffix
         Array *intsufptn = new Array(suflen, NUCLALPHASIZE);
         for (j=i; j<ptnlen; j++)
-            intsufptn->setField(j-i, nucl_to_int[(int)pattern[j]]);
+            (*intsufptn)[j-i] = nucl_to_int[(int)pattern[j]];
 
         // Copy the 3bpb version of the pattern prefix
         Array *intpfxptn = new Array(pfxlen, NUCLALPHASIZE);
         for (j=0; j<pfxlen; j++)
-            intpfxptn->setField(j, nucl_to_int[(int)pattern[j]]);
+            (*intpfxptn)[j] = nucl_to_int[(int)pattern[j]];
 
         // Search for the positions in the reference sequence at which
         // the current suffix occurs
@@ -550,21 +550,21 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // the prefix and the second factor starts with the suffix
         for (l=lb; l<=rb; l++)
         {
-            pos = sa->getField(l);
+            pos = (*sa)[l];
             // Ignore start positions at which factors don't start
             if (!isstart->access(pos))
                 continue;
             for (j=0; j<numlevels; j++)
             {
-                poslb = levelidx->getField(j);
-                posrb = levelidx->getField(j+1) - 1;
+                poslb = (*levelidx)[j];
+                posrb = (*levelidx)[j+1] - 1;
                 factor_start_binary_search(pos, &poslb, &posrb);
                 if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
                     continue;
 
                 for (k=poslb; k<=posrb; k++)
                 {
-                    facidx = nll->getField(k);
+                    facidx = (*nll)[k];
                     // Ignore factors that are not long enough to
                     // contain suffix
                     if (factor_length(facidx) < suflen) continue;
@@ -575,7 +575,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // occurs in the positions array
                     facidx = facidx-1;
                     // Get the position component of the previous factor
-                    prevpos = positions->getField(facidx);
+                    prevpos = (*positions)[facidx];
                     // Ignore factors that are all Ns
                     if (prevpos == refseqlen) continue;
 
@@ -600,7 +600,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                         {
                             seq = seqfacstart->rank1(facidx);
                             occpos = facstarts->select1(facidx+2)
-                                     - pfxlen - cumseqlens->getField(seq);
+                                     - pfxlen - (*cumseqlens)[seq];
                             occ.seq = seq; occ.pos = occpos;
                             occs.push_back(occ);
                         }
@@ -623,12 +623,12 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // Copy the 3bpb version of the prefix
         Array *intpfxptn = new Array(i, NUCLALPHASIZE);
         for (j=0; j<i; j++)
-            intpfxptn->setField(j, nucl_to_int[(int)pattern[j]]);
+            (*intpfxptn)[j] = nucl_to_int[(int)pattern[j]];
 
         // Copy the 3bpb version of the suffix
         Array *intsufptn = new Array(ptnlen-i, NUCLALPHASIZE);
         for (; j<ptnlen; j++)
-            intsufptn->setField(j-i, nucl_to_int[(int)pattern[j]]);
+            (*intsufptn)[j-i] = nucl_to_int[(int)pattern[j]];
 
         // Search for the positions in the reference sequence at which
         // the current prefix occurs
@@ -642,14 +642,14 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         // the prefix and the second factor starts with the suffix
         for (l=lb; l<=rb; l++)
         {
-            pos = sa->getField(l);
+            pos = (*sa)[l];
             // Ignore end positions at which factors don't end
             if (!isend->access(pos+pfxlen))
                 continue;
             for (j=0; j<numlevels; j++)
             {
-                poslb = levelidx->getField(j);
-                posrb = levelidx->getField(j+1) - 1;
+                poslb = (*levelidx)[j];
+                posrb = (*levelidx)[j+1] - 1;
                 factor_end_binary_search(pos+pfxlen, &poslb, &posrb);
                 if (poslb == (uint32_t)-1 || posrb == (uint32_t)-1)
                     continue;
@@ -658,12 +658,12 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                 {
                     // Get the position at which the next factor
                     // occurs in the positions array
-                    facidx = nll->getField(k)+1;
+                    facidx = (*nll)[k]+1;
                     // Don't check next factor because it's in a
                     // different sequence
                     if (seqfacstart->access(facidx)) continue;
                     // Get the position component of the next factor
-                    nextpos = positions->getField(facidx);
+                    nextpos = (*positions)[facidx];
                     // Ignore factors that are all Ns
                     if (nextpos == refseqlen) continue;
 
@@ -688,7 +688,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                         {
                             seq = seqfacstart->rank1(facidx-1);
                             occpos = facstarts->select1(facidx+1)
-                                     - pfxlen - cumseqlens->getField(seq);
+                                     - pfxlen - (*cumseqlens)[seq];
                             occ.seq = seq; occ.pos = occpos;
                             occs.push_back(occ);
                         }
@@ -716,7 +716,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb, uint64_t *cr)
     uint64_t length = pattern.getLength();
     for (uint64_t i=0; i<length; i++)
     {
-        c = pattern.getField(i);
+        c = pattern[i];
         low = pl; high = pr;
 
         // Binary search left
@@ -724,7 +724,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb, uint64_t *cr)
         {
             mid = (low + high) >> 1;
 
-            midval = refseq->getField(sa->getField(mid)+i);
+            midval = (*refseq)[(*sa)[mid]+i];
             // Move left boundary to the middle
             if (midval < c)
                 low = mid + 1;
@@ -739,7 +739,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb, uint64_t *cr)
                     *lb = mid;
                     break;
                 }
-                midvalleft = refseq->getField(sa->getField(mid-1)+i);
+                midvalleft = (*refseq)[(*sa)[mid-1]+i];
                 // Discard mid and values to the right of mid
                 if(midvalleft == midval)
                     high = mid - 1;
@@ -767,7 +767,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb, uint64_t *cr)
             mid = (low + high) >> 1;
 
 
-            midval = refseq->getField(sa->getField(mid)+i);
+            midval = (*refseq)[(*sa)[mid]+i];
             // Move left bounary to the middle
             if (midval < c)
                 low = mid + 1;
@@ -782,7 +782,7 @@ void RLZ_index::sa_binary_search(Array &pattern, uint64_t *lb, uint64_t *cr)
                     *cr = mid;
                     break;
                 }
-                midvalright = refseq->getField(sa->getField(mid+1)+i);
+                midvalright = (*refseq)[(*sa)[mid+1]+i];
                 // Discard mid and the ones to the left of mid
                 if(midvalright == midval)
                     low = mid + 1; 
@@ -824,8 +824,8 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
         mid = (low + high) >> 1;
 
         // Get the factor at the middle index 
-        facidx = nll->getField(mid);
-        pos = positions->getField(facidx);
+        facidx = (*nll)[mid];
+        pos = (*positions)[facidx];
         len = factor_length(facidx);
 
         // The factor is to the right of the current middle 
@@ -845,8 +845,8 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
             }
 
             // Get the factor at the left of the middle
-            facidx = nll->getField(mid-1);
-            pos = positions->getField(facidx);
+            facidx = (*nll)[mid-1];
+            pos = (*positions)[facidx];
             len = factor_length(facidx);
 
             // mid - 1 factor is less than the current position so we've
@@ -879,8 +879,8 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
         mid = (low + high) >> 1;
 
         // Get the factor at the middle index 
-        facidx = nll->getField(mid);
-        pos = positions->getField(facidx);
+        facidx = (*nll)[mid];
+        pos = (*positions)[facidx];
         len = factor_length(facidx);
 
         // The factor is to the right of the current middle 
@@ -900,8 +900,8 @@ void RLZ_index::facs_binary_search(uint64_t start, uint64_t end,
             }
 
             // Get the factor at the right of the middle
-            facidx = nll->getField(mid+1);
-            pos = positions->getField(facidx);
+            facidx = (*nll)[mid+1];
+            pos = (*positions)[facidx];
             len = factor_length(facidx);
 
             // mid + 1 factor is greater than the current position so we've
@@ -941,8 +941,8 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
         mid = (low + high) >> 1;
 
         // Get the factor at the middle index 
-        facidx = nll->getField(mid);
-        pos = positions->getField(facidx);
+        facidx = (*nll)[mid];
+        pos = (*positions)[facidx];
 
         // The factor is to the right of the current middle 
         if (start > pos)
@@ -962,8 +962,8 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
 
             // Get the nucleotide at the left of the middle suffix +
             // offset 
-            facidx = nll->getField(mid-1);
-            pos = positions->getField(facidx);
+            facidx = (*nll)[mid-1];
+            pos = (*positions)[facidx];
 
             // mid - 1 factor is less than the current position so we've
             // reached the left most boundary 
@@ -995,8 +995,8 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
         mid = (low + high) >> 1;
 
         // Get the factor at the middle index 
-        facidx = nll->getField(mid);
-        pos = positions->getField(facidx);
+        facidx = (*nll)[mid];
+        pos = (*positions)[facidx];
 
         // The factor is to the right of the current middle 
         if (start > pos)
@@ -1015,8 +1015,8 @@ void RLZ_index::factor_start_binary_search(uint64_t start, uint32_t *lb,
             }
 
             // Get the factor at the right of the middle
-            facidx = nll->getField(mid+1);
-            pos = positions->getField(facidx);
+            facidx = (*nll)[mid+1];
+            pos = (*positions)[facidx];
 
             // mid + 1 factor is greater than the current position so we've
             // reached the right most boundary 
@@ -1055,8 +1055,8 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
         mid = (low + high) >> 1;
 
         // Get the factor at the middle index 
-        facidx = nll->getField(mid);
-        pos = positions->getField(facidx);
+        facidx = (*nll)[mid];
+        pos = (*positions)[facidx];
         len = factor_length(facidx);
 
         // The factor is to the right of the current middle 
@@ -1077,8 +1077,8 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
 
             // Get the nucleotide at the left of the middle suffix +
             // offset 
-            facidx = nll->getField(mid-1);
-            pos = positions->getField(facidx);
+            facidx = (*nll)[mid-1];
+            pos = (*positions)[facidx];
             len = factor_length(facidx);
 
             // mid - 1 factor is less than the current position so we've
@@ -1111,8 +1111,8 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
         mid = (low + high) >> 1;
 
         // Get the factor at the middle index 
-        facidx = nll->getField(mid);
-        pos = positions->getField(facidx);
+        facidx = (*nll)[mid];
+        pos = (*positions)[facidx];
         len = factor_length(facidx);
 
         // The factor is to the right of the current middle 
@@ -1132,8 +1132,8 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
             }
 
             // Get the factor at the right of the middle
-            facidx = nll->getField(mid+1);
-            pos = positions->getField(facidx);
+            facidx = (*nll)[mid+1];
+            pos = (*positions)[facidx];
             len = factor_length(facidx);
 
             // mid + 1 factor is greater than the current position so we've
@@ -1162,7 +1162,7 @@ void RLZ_index::factor_end_binary_search(uint64_t end, uint32_t *lb,
 inline uint64_t RLZ_index::factor_length(uint32_t facidx)
 {
     if (facidx+1 == numfacs)
-        return cumseqlens->getField(numseqs) -
+        return (*cumseqlens)[numseqs] -
                facstarts->select1(facidx+1);
         
     return facstarts->select1(facidx+2) - facstarts->select1(facidx+1);
@@ -1175,7 +1175,7 @@ inline bool RLZ_index::compare_substr_to_refseq(Array& substr, uint64_t start,
 
     for (i=start, j=0; i<start+len; i++,j++)
     {
-        if (refseq->getField(i) != substr.getField(j))
+        if ((*refseq)[i] != substr[j])
             return false;
     }
 

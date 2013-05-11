@@ -95,7 +95,7 @@ void RLZCompress::read_refseq_and_construct_sa()
     sa = new Array(refseqlen+1, refseqlen);
     for (i=0; i<=refseqlen; i++)
     {
-        sa->setField(i, sufarray[i]);
+        (*sa)[i] = sufarray[i];
     }
 
     // Calculate the log of the reference sequence length
@@ -146,7 +146,7 @@ void RLZCompress::read_refseq_and_sa()
         sa = new Array(refseqlen+1, refseqlen);
         for (i=0; i<=refseqlen; i++)
         {
-            sa->setField(i, sufarray[i]);
+            (*sa)[i] = sufarray[i];
         }
 
         // Write out suffix array to disk for later use
@@ -206,7 +206,7 @@ void RLZ::store_sequence(char *sequence, char *filename, Array *dest,
         // Valid nucleotide
         if (v > 0)
         {
-            dest->setField(i, v);
+            (*dest)[i] = v;
         }
         else
         {
@@ -215,7 +215,7 @@ void RLZ::store_sequence(char *sequence, char *filename, Array *dest,
             exit(1);
         }
     }
-    dest->setField(i, 0);
+    (*dest)[i] = 0;
 
     return;
 }
@@ -234,7 +234,7 @@ void RLZ::store_sequence(ifstream &infile, char *filename, Array *dest,
         // Valid nucleotide
         if (v > 0)
         {
-            dest->setField(i, v);
+            (*dest)[i] = v;
         }
         else
         {
@@ -243,7 +243,7 @@ void RLZ::store_sequence(ifstream &infile, char *filename, Array *dest,
             exit(1);
         }
     }
-    dest->setField(i, 0);
+    (*dest)[i] = 0;
 
     return;
 }
@@ -351,7 +351,7 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
             // array boundaries
             if (!runofns && len > 0)
             {
-                facwriter.write_factor(sa->getField(pl), len);
+                facwriter.write_factor((*sa)[pl], len);
                 pl = 0; pr = refseqlen; len = 0; 
             }
             runofns = true;
@@ -373,7 +373,7 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
             // Couldn't extend current match so print factor
             if (cl == (uint64_t)(-1) || cr == (uint64_t)(-1))
             {
-                facwriter.write_factor(sa->getField(pl), len);
+                facwriter.write_factor((*sa)[pl], len);
                 infile.unget();
                 pl = 0; pr = refseqlen; len = 0;
             }
@@ -393,7 +393,7 @@ void RLZCompress::relative_LZ_factorise(ifstream& infile,
         if (runofns)
             facwriter.write_factor(refseqlen, len);
         else
-            facwriter.write_factor(sa->getField(pl), len);
+            facwriter.write_factor((*sa)[pl], len);
     }
 
     // Call this to indicate the end of input to the factor writer
@@ -413,7 +413,7 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
     {
         mid = (low + high) >> 1;
 
-        midval = refseq->getField(sa->getField(mid)+offset);
+        midval = (*refseq)[(*sa)[mid]+offset];
         // Move left boundary to the middle
         if (midval < c)
             low = mid + 1;
@@ -428,7 +428,7 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
                 *cl = mid;
                 break;
             }
-            midvalleft = refseq->getField(sa->getField(mid-1)+offset);
+            midvalleft = (*refseq)[(*sa)[mid-1]+offset];
             // Discard mid and values to the right of mid
             if(midvalleft == midval)
                 high = mid - 1;
@@ -456,7 +456,7 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
         mid = (low + high) >> 1;
 
 
-        midval = refseq->getField(sa->getField(mid)+offset);
+        midval = (*refseq)[(*sa)[mid]+offset];
         // Move left bounary to the middle
         if (midval < c)
             low = mid + 1;
@@ -471,7 +471,7 @@ void RLZCompress::sa_binary_search(uint64_t pl, uint64_t pr, int c,
                 *cr = mid;
                 break;
             }
-            midvalright = refseq->getField(sa->getField(mid+1)+offset);
+            midvalright = (*refseq)[(*sa)[mid+1]+offset];
             // Discard mid and the ones to the left of mid
             if(midvalright == midval)
                 low = mid + 1; 
@@ -603,7 +603,7 @@ void RLZDecompress::relative_LZ_defactorise(FactorReader& facreader,
             {
                 for (i=pos; i<pos+len; i++)
                 {
-                    outfile << (char)int_to_nucl[refseq->getField(i)];
+                    outfile << (char)int_to_nucl[(*refseq)[i]];
                 }
             }
             substr.clear();
@@ -831,7 +831,7 @@ void FactorWriterText::write_factor(uint64_t pos, uint64_t len)
         for (i=pos; i<pos+len; i++)
         {
             // Don't short factor encode if there are 'n's in the factor
-            if (int_to_nucl[refseq->getField(i)] == 'n')
+            if (int_to_nucl[(*refseq)[i]] == 'n')
             {
                 outfile << pos << ' ' << len << endl;
                 return;
@@ -841,7 +841,7 @@ void FactorWriterText::write_factor(uint64_t pos, uint64_t len)
         // Output a short factor, substring followed by the length
         for (i=pos; i<pos+len; i++)
         {
-            outfile << int_to_nucl[refseq->getField(i)];
+            outfile << int_to_nucl[(*refseq)[i]];
         }
         outfile << ' ' << len << endl;
         return;
@@ -930,7 +930,7 @@ void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
         for (i=pos; i<pos+len; i++)
         {
             // Don't short factor encode if there are 'n's in the factor
-            if (int_to_nucl[refseq->getField(i)] == 'n')
+            if (int_to_nucl[(*refseq)[i]] == 'n')
             {
                 // Indicate this is not a short factor
                 bwriter->write_bit(1);
@@ -947,7 +947,7 @@ void FactorWriterBinary::write_factor(uint64_t pos, uint64_t len)
         gcodershort->golomb_encode(len);
         for (i=pos; i<pos+len; i++)
         {
-            bwriter->int_to_binary(int_to_2bpb[refseq->getField(i)], 2);
+            bwriter->int_to_binary(int_to_2bpb[(*refseq)[i]], 2);
         }
         return;
     }
@@ -1361,7 +1361,7 @@ void FactorWriterIndex::write_index()
     Array posarray(numfacs, refseqlen);
     for (i=0; i<numfacs; i++)
     {
-        posarray.setField(i, get_field_64(positions, logrefseqlen, i));
+        posarray[i] = get_field_64(positions, logrefseqlen, i);
     }
     posarray.save(outfile);
     cout << "positions: " << posarray.getSize() << endl;
@@ -1369,7 +1369,7 @@ void FactorWriterIndex::write_index()
     // Write out the cumulative sequence lengths
     Array cumseqlensarray(cumseqlens.size(), cumseqlens.back());
     for (i=0; i<cumseqlens.size(); i++)
-        cumseqlensarray.setField(i, cumseqlens.at(i));
+        cumseqlensarray[i] = cumseqlens.at(i);
     cumseqlensarray.save(outfile);
     cout << "cumseqlens: " << cumseqlensarray.getSize() << endl;
 
@@ -1607,17 +1607,17 @@ void FactorWriterIndex::construct_nested_level_list
     // level
     for (i=0; i<numlevels; i++)
     {
-        levelidx->setField(i,cumlen);
+        (*levelidx)[i] = cumlen;
         cumlen += nestedlevels[i].size();
         for (j=0; j<nestedlevels[i].size(); j++,k++)
         {
-            nll->setField(k, nestedlevels[i][j]);
+            (*nll)[k] = nestedlevels[i][j];
         }
         nestedlevels[i].clear();
     }
     // Have one more than the length of the reference sequence such that
     // levelidx[j+1] - levelidx[j] = number of factors that are in that
     // level
-    levelidx->setField(i,cumlen);
+    (*levelidx)[i] = cumlen;
 
 }
