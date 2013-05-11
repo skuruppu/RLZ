@@ -38,6 +38,10 @@
 #include <cstdint>
 #endif
 
+#ifdef CDS
+    #define Array lib_wrapper::CDSArray
+#endif
+
 class FactorWriter
 {
     public:
@@ -55,8 +59,8 @@ class FactorWriter
          * @param logrefseqlen Number of bits for encoding positions
          */
         FactorWriter(ofstream& outfile, char encoding, bool isshort,
-                     bool isliss, lib_wrapper::Array *refseq,
-                     uint64_t refseqlen, uint64_t logrefseqlen);
+                     bool isliss, Array *refseq, uint64_t refseqlen,
+                     uint64_t logrefseqlen);
 
         /** Destructor for the class. */
         virtual ~FactorWriter();
@@ -90,7 +94,7 @@ class FactorWriter
         
         // Reference sequence as a bit vector with 3bpb encoding
         // {a,c,g,t,n}
-        lib_wrapper::Array *refseq;
+        Array *refseq;
         uint64_t refseqlen;
         uint64_t logrefseqlen;
 
@@ -127,7 +131,7 @@ class FactorWriterText : public FactorWriter
          * @param refseqlen Length of reference sequence
          */
         FactorWriterText(ofstream& outfile, bool isshort, bool isliss,
-                         lib_wrapper::Array *refseq, uint64_t refseqlen,
+                         Array *refseq, uint64_t refseqlen,
                          uint64_t logrefseqlen);
         
         /** Output an RLZ factor.
@@ -169,7 +173,7 @@ class FactorWriterBinary : public FactorWriter
          * @param logrefseqlen Number of bits for encoding positions
          */
         FactorWriterBinary(ofstream& outfile, bool isshort, bool isliss,
-                           lib_wrapper::Array *refseq, uint64_t refseqlen,
+                           Array *refseq, uint64_t refseqlen,
                            uint64_t logrefseqlen);
 
         /** Destructor for the class. */
@@ -218,8 +222,8 @@ class FactorWriterIndex : public FactorWriter
          * @param logrefseqlen Number of bits for encoding positions
          * @param displayonly Output only display() query structures
          */
-        FactorWriterIndex(ofstream& outfile, lib_wrapper::Array *refseq,
-                          lib_wrapper::Array *sa, uint64_t refseqlen,
+        FactorWriterIndex(ofstream& outfile, Array *refseq,
+                          Array *sa, uint64_t refseqlen,
                           uint64_t logrefseqlen, bool displayonly);
 
 
@@ -267,11 +271,11 @@ class FactorWriterIndex : public FactorWriter
         bool displayonly;
 
         // Suffix array of the reference sequence
-        lib_wrapper::Array *sa;
+        Array *sa;
 
         // Nested level lists of the sorted factors
-        lib_wrapper::Array *nll;
-        lib_wrapper::Array *levelidx;
+        Array *nll;
+        Array *levelidx;
         uint32_t numlevels;
 
         // Sequence start positions in factors
@@ -408,7 +412,7 @@ class RLZ
         
         // Reference sequence as a bit vector with 3bpb encoding
         // {a,c,g,t,n}
-        lib_wrapper::Array *refseq;
+        Array *refseq;
         uint64_t refseqlen;
         uint64_t logrefseqlen;
 
@@ -424,7 +428,7 @@ class RLZ
          * @param length Number of symbols to store
          */
         virtual void store_sequence(char *sequence, char *filename,
-                                    lib_wrapper::Array *dest, uint64_t length);
+                                    Array *dest, uint64_t length);
 
         /** Store a sequence containing nucleotides from alphabet
          * NUCLALPHA using BITSPERBASE bits each.
@@ -434,7 +438,7 @@ class RLZ
          * @param length Number of symbols to store
          */
         virtual void store_sequence(ifstream& infile, char *filename,
-                                    lib_wrapper::Array *dest, uint64_t length);
+                                    Array *dest, uint64_t length);
 
 };
 
@@ -471,7 +475,7 @@ class RLZCompress : RLZ
     private:
 
         // Suffix array of the reference sequence
-        lib_wrapper::Array *sa;
+        Array *sa;
 
         // Type of encoding
         char encoding;

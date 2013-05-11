@@ -30,6 +30,10 @@
 
 #include "lib_wrapper/wrapper.h"
 
+#ifdef CDS
+    #define Array lib_wrapper::CDSArray
+#endif
+
 typedef struct occurrence
 {
     uint64_t seq;
@@ -84,16 +88,16 @@ class RLZ_index
 
         /* Reference sequence as a bit vector with 3bpb encoding
          * {a,c,g,t,n} */
-        lib_wrapper::Array *refseq;
+        Array *refseq;
 
         /* Factor positions as a bit vector using logn bits per position */
-        lib_wrapper::Array *positions;
+        Array *positions;
 
         /* Factor facstarts in a rank-select data structure */
         cds_static::BitSequenceSDArray *facstarts;
 
         /* Sequence cumseqlens for numseqs sequences */
-        lib_wrapper::Array *cumseqlens;
+        Array *cumseqlens;
 
         /** Reads the reference sequence into memory and fills in the
          * refseqlen and refseq variables. Also creates the suffix array
@@ -136,11 +140,11 @@ class RLZ_index
         /*-------------------------------------------------------------------*/
 
         // Suffix array of the reference sequence
-        lib_wrapper::Array *sa;
+        Array *sa;
 
         // Nested level lists of the sorted factors
-        lib_wrapper::Array *nll;
-        lib_wrapper::Array *levelidx;
+        Array *nll;
+        Array *levelidx;
         uint32_t numlevels;
 
         // Compressed bit vectors to indicate at which positions in the
@@ -167,8 +171,7 @@ class RLZ_index
          * @param lb Variable to store the return left boundary
          * @param rb Variable to store the return right boundary
          */
-        void sa_binary_search(lib_wrapper::Array &pattern, uint64_t *lb,
-                              uint64_t *rb);
+        void sa_binary_search(Array &pattern, uint64_t *lb, uint64_t *rb);
 
 
         /** Returns the boundaries of a level in the nested level list
@@ -180,8 +183,8 @@ class RLZ_index
          * @param lb Initial left boundary and the place to store the return left boundary
          * @param rb INitial right boundary and the place to store the return right boundary
          */
-        void facs_binary_search(uint64_t start, uint64_t end, 
-                                uint32_t *lb, uint32_t *rb);
+        void facs_binary_search(uint64_t start, uint64_t end, uint32_t *lb,
+                                uint32_t *rb);
 
         /** Returns the boundaries of a level in the nested level list 
          * that contains the factors that start with the given start
@@ -212,7 +215,6 @@ class RLZ_index
          * @param len Length of the substring to search for
          * @return Returns true if the substrings are equal and false otherwise
          */
-        inline bool compare_substr_to_refseq(lib_wrapper::Array& substr, 
-                                             uint64_t start, 
+        inline bool compare_substr_to_refseq(Array& substr, uint64_t start,
                                              uint64_t len);
 };

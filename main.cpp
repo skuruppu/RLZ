@@ -111,7 +111,5 @@ int main(int argc, char **argv)
         rlzd.decompress();
     }
 
-    lib_wrapper::GLOBAL_LIB_TYPE = lib_wrapper::LIBSDSL;
-
     return 0;
 }

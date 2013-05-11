@@ -4,7 +4,7 @@
 
 CC = g++
 
-CFLAGS = -Wall -O9 -g
+CFLAGS = -Wall -O9 -g -DCDS
 
 LIBS = -lcds -ldivsufsort64
 
