@@ -102,4 +102,29 @@ uint64_t CDSArray::getLength()
     return this->cdsarray->getLength();
 }
 
+ArrayReference::~ArrayReference() {}
+
+CDSArrayReference CDSArray::operator[](const uint64_t idx)
+{
+    return CDSArrayReference(this->cdsarray, idx);
+}
+
+CDSArrayReference::CDSArrayReference(cds_utils::Array* cdsarray,
+                                     const uint64_t idx) :
+                                     cdsarray(cdsarray), idx(idx) {}
+
+CDSArrayReference::~CDSArrayReference() {}
+
+
+CDSArrayReference::operator uint64_t()
+{
+    return this->cdsarray->getField(this->idx);
+}
+
+CDSArrayReference& CDSArrayReference::operator=(const uint64_t val)
+{
+    this->cdsarray->setField(this->idx, val);
+    return *this;
+}
+
 }

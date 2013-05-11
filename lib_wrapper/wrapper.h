@@ -35,6 +35,36 @@ enum Library
 
 extern Library GLOBAL_LIB_TYPE;
 
+class ArrayReference
+{
+    public:
+
+        virtual ~ArrayReference();
+
+        virtual operator uint64_t() = 0;
+
+        virtual ArrayReference& operator=(const uint64_t) = 0;
+};
+
+class CDSArrayReference : public ArrayReference
+{
+    public:
+
+        CDSArrayReference(cds_utils::Array*, uint64_t);
+
+        ~CDSArrayReference();
+
+        operator uint64_t();
+
+        CDSArrayReference& operator=(uint64_t);
+
+    private:
+
+        cds_utils::Array *cdsarray;
+
+        uint64_t idx;
+};
+
 class Array
 {
     public:
@@ -54,6 +84,8 @@ class Array
         virtual size_t getSize() = 0;
 
         virtual uint64_t getLength() = 0;
+
+        virtual CDSArrayReference operator[](const uint64_t) = 0;
 };
 
 class CDSArray : public Array
@@ -77,6 +109,8 @@ class CDSArray : public Array
         size_t getSize();
 
         uint64_t getLength();
+
+        CDSArrayReference operator[](const uint64_t);
 
     private:
 
