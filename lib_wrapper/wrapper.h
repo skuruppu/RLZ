@@ -33,30 +33,25 @@ enum Library
     LIBSDSL
 };
 
-extern Library GLOBAL_LIB_TYPE;
-
-class ArrayReference
+class CDSArrayReference
 {
     public:
 
-        virtual ~ArrayReference();
+        CDSArrayReference(cds_utils::Array* cdsarray, const uint64_t idx) :
+            cdsarray(cdsarray), idx(idx) {}
 
-        virtual operator uint64_t() = 0;
+        ~CDSArrayReference() {}
 
-        virtual ArrayReference& operator=(const uint64_t) = 0;
-};
+        operator uint64_t()
+        {
+            return this->cdsarray->getField(this->idx);
+        }
 
-class CDSArrayReference : public ArrayReference
-{
-    public:
-
-        CDSArrayReference(cds_utils::Array*, uint64_t);
-
-        ~CDSArrayReference();
-
-        operator uint64_t();
-
-        CDSArrayReference& operator=(uint64_t);
+        CDSArrayReference& operator=(const uint64_t val)
+        {
+            this->cdsarray->setField(this->idx, val);
+            return *this;
+        }
 
     private:
 
@@ -65,52 +60,56 @@ class CDSArrayReference : public ArrayReference
         uint64_t idx;
 };
 
-class Array
+class CDSArray
 {
     public:
 
-        static Array* create(const uint64_t, const uint64_t);
+        CDSArray() : cdsarray(NULL) {}
 
-        static Array* create(ifstream&);
+        CDSArray(const uint64_t size, const uint64_t maxval)
+        {
+            this->cdsarray = new cds_utils::Array(size, maxval);
+        }
 
-        virtual ~Array();
+        CDSArray(ifstream& file)
+        {
+            this->cdsarray = new cds_utils::Array(file);
+        }
 
-        virtual uint64_t getField(const uint64_t) = 0;
+        ~CDSArray()
+        {
+            delete this->cdsarray;
+        }
 
-        virtual uint64_t setField(const uint64_t, const uint64_t) = 0;
+        uint64_t getField(const uint64_t idx)
+        {
+            return this->cdsarray->getField(idx);
+        }
 
-        virtual void save(ofstream&) = 0;
+        uint64_t setField(const uint64_t idx, const uint64_t val)
+        {
+            return this->cdsarray->setField(idx, val);
+        }
 
-        virtual size_t getSize() = 0;
+        void save(ofstream& file)
+        {
+            this->cdsarray->save(file);
+        }
 
-        virtual uint64_t getLength() = 0;
+        size_t getSize()
+        {
+            return this->cdsarray->getSize();
+        }
 
-        virtual CDSArrayReference operator[](const uint64_t) = 0;
-};
+        uint64_t getLength()
+        {
+            return this->cdsarray->getLength();
+        }
 
-class CDSArray : public Array
-{
-    public:
-
-        CDSArray();
-
-        CDSArray(const uint64_t, const uint64_t);
-
-        CDSArray(ifstream&);
-
-        ~CDSArray();
-
-        uint64_t getField(const uint64_t);
-
-        uint64_t setField(const uint64_t, const uint64_t);
-
-        void save(ofstream&);
-
-        size_t getSize();
-
-        uint64_t getLength();
-
-        CDSArrayReference operator[](const uint64_t);
+        CDSArrayReference operator[](const uint64_t idx)
+        {
+            return CDSArrayReference(this->cdsarray, idx);
+        }
 
     private:
 
