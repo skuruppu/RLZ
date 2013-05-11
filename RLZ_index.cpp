@@ -461,15 +461,15 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
     occ_t occ;
 
     // Convert the pattern to use 3bpb
-    Array *intpattern = new Array(ptnlen, NUCLALPHASIZE);
+    Array intpattern(ptnlen, NUCLALPHASIZE);
     for (i=0; i<ptnlen; i++)
-        (*intpattern)[i] = nucl_to_int[(int)pattern[i]];
+        intpattern[i] = nucl_to_int[(int)pattern[i]];
 
     occurrences = 0;
     // Search for patterns occurring within factors
     // First get the positions at which the pattern occurs in the
     // reference sequence
-    sa_binary_search((*intpattern), &lb, &rb);
+    sa_binary_search(intpattern, &lb, &rb);
     if (lb != (uint64_t)-1 && rb != (uint64_t)-1)
     {
         // Add the reference sequence occurrences to the number of
@@ -529,18 +529,18 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         suflen = ptnlen-i;
 
         // Copy the 3bpb version of the pattern suffix
-        Array *intsufptn = new Array(suflen, NUCLALPHASIZE);
+        Array intsufptn(suflen, NUCLALPHASIZE);
         for (j=i; j<ptnlen; j++)
-            (*intsufptn)[j-i] = nucl_to_int[(int)pattern[j]];
+            intsufptn[j-i] = nucl_to_int[(int)pattern[j]];
 
         // Copy the 3bpb version of the pattern prefix
-        Array *intpfxptn = new Array(pfxlen, NUCLALPHASIZE);
+        Array intpfxptn(pfxlen, NUCLALPHASIZE);
         for (j=0; j<pfxlen; j++)
-            (*intpfxptn)[j] = nucl_to_int[(int)pattern[j]];
+            intpfxptn[j] = nucl_to_int[(int)pattern[j]];
 
         // Search for the positions in the reference sequence at which
         // the current suffix occurs
-        sa_binary_search((*intsufptn), &lb, &rb);
+        sa_binary_search(intsufptn, &lb, &rb);
 
         // The suffix doesn't occur in the reference sequence
         if (lb == (uint64_t)-1 || rb == (uint64_t)-1)
@@ -589,7 +589,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // Compare the prefix with the equivalent length
                     // suffix of the previous factor and if they are
                     // equal then we have a match
-                    if (compare_substr_to_refseq((*intpfxptn),
+                    if (compare_substr_to_refseq(intpfxptn,
                         prevpos+prevlen-pfxlen, pfxlen))
                     {
                         occurrences ++; 
@@ -609,8 +609,6 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
             }
         }
 
-        delete intsufptn;
-        delete intpfxptn;
     }
 
     // Split the pattern into two and binary search for factors ending
@@ -621,18 +619,18 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         suflen = ptnlen-i;
 
         // Copy the 3bpb version of the prefix
-        Array *intpfxptn = new Array(i, NUCLALPHASIZE);
+        Array intpfxptn(i, NUCLALPHASIZE);
         for (j=0; j<i; j++)
-            (*intpfxptn)[j] = nucl_to_int[(int)pattern[j]];
+            intpfxptn[j] = nucl_to_int[(int)pattern[j]];
 
         // Copy the 3bpb version of the suffix
-        Array *intsufptn = new Array(ptnlen-i, NUCLALPHASIZE);
+        Array intsufptn(ptnlen-i, NUCLALPHASIZE);
         for (; j<ptnlen; j++)
-            (*intsufptn)[j-i] = nucl_to_int[(int)pattern[j]];
+            intsufptn[j-i] = nucl_to_int[(int)pattern[j]];
 
         // Search for the positions in the reference sequence at which
         // the current prefix occurs
-        sa_binary_search((*intpfxptn), &lb, &rb);
+        sa_binary_search(intpfxptn, &lb, &rb);
 
         // The prefix doesn't occur in the reference sequence
         if (lb == (uint64_t)-1 || rb == (uint64_t)-1)
@@ -677,7 +675,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     // Compare the suffix with the equivalent length
                     // prefix of the next factor and if they are
                     // equal then we have a match
-                    if (compare_substr_to_refseq((*intsufptn), nextpos,
+                    if (compare_substr_to_refseq(intsufptn, nextpos,
                         suflen))
                     {
                         occurrences ++; 
@@ -696,12 +694,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                 }
             }
         }
-
-        delete intsufptn;
-        delete intpfxptn;
     }
-
-    delete intpattern;
 
     return occurrences;
 }
