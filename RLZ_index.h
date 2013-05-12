@@ -21,7 +21,6 @@
  * Authors: Shanika Kuruppu (kuruppu@csse.unimelb.edu.au)
  */
 
-#include <stdio.h>
 #include <vector>
 
 #include "lib_wrapper/wrapper.h"

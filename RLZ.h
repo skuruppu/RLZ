@@ -22,10 +22,7 @@
  *          Simon J. Puglisi (simon.puglisi@rmit.edu.au)
  */
 
-#include <iostream>
 #include <vector>
-#include <algorithm>
-#include <SuffixTree.h>
 
 #include "Bits.h"
 #include "lib_wrapper/wrapper.h"

@@ -22,6 +22,7 @@
  *          Simon J. Puglisi (simon.puglisi@rmit.edu.au)
  */
 
+#include <cstring>
 #include <getopt.h>
 
 #include "RLZ.h"

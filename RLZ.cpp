@@ -22,6 +22,10 @@
  *          Simon J. Puglisi (simon.puglisi@rmit.edu.au)
  */
 
+#include <iostream>
+#include <algorithm>
+
+#include <SuffixTree.h>
 #include <divsufsort64.h>
 #include "RLZ.h"
 #include "alphabet.h"
