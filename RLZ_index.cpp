@@ -545,7 +545,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         {
             pos = (*sa)[l];
             // Ignore start positions at which factors don't start
-            if (!isstart->access(pos))
+            if (!(*isstart)[pos])
                 continue;
             for (j=0; j<numlevels; j++)
             {
@@ -563,7 +563,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     if (factor_length(facidx) < suflen) continue;
                     // Don't check previous factor because it's in a
                     // difference sequence
-                    if (seqfacstart->access(facidx)) continue;
+                    if ((*seqfacstart)[facidx]) continue;
                     // Get the position at which the previous factor
                     // occurs in the positions array
                     facidx = facidx-1;
@@ -635,7 +635,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
         {
             pos = (*sa)[l];
             // Ignore end positions at which factors don't end
-            if (!isend->access(pos+pfxlen))
+            if (!(*isend)[pos+pfxlen])
                 continue;
             for (j=0; j<numlevels; j++)
             {
@@ -652,7 +652,7 @@ uint64_t RLZ_index::search(const char *pattern, unsigned int ptnlen,
                     facidx = (*nll)[k]+1;
                     // Don't check next factor because it's in a
                     // different sequence
-                    if (seqfacstart->access(facidx)) continue;
+                    if ((*seqfacstart)[facidx]) continue;
                     // Get the position component of the next factor
                     nextpos = (*positions)[facidx];
                     // Ignore factors that are all Ns

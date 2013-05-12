@@ -182,7 +182,7 @@ class CDSBitSequenceSDArray
             return cdsbitsequencesdarray->rank1(idx);
         }
 
-        bool access(const uint64_t idx)
+        bool operator[](const uint64_t idx)
         {
             return cdsbitsequencesdarray->access(idx);
         }
@@ -239,7 +239,7 @@ class CDSBitSequenceRRR
             return cdsbitsequencerrr->rank1(idx);
         }
 
-        bool access(const uint64_t idx)
+        bool operator[](const uint64_t idx)
         {
             return cdsbitsequencerrr->access(idx);
         }
