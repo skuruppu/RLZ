@@ -135,11 +135,6 @@ class CDSBitString
             cdsbitstring->setBit(idx);
         }
 
-        cds_utils::BitString& getBitString()
-        {
-            return (*cdsbitstring);
-        }
-
     private:
 
         cds_utils::BitString *cdsbitstring;
@@ -148,6 +143,9 @@ class CDSBitString
         CDSBitString(const CDSBitString& other);
 
         CDSBitString& operator=(const CDSBitString& other);
+
+        friend class CDSBitSequenceSDArray;
+        friend class CDSBitSequenceRRR;
 };
 
 class CDSBitSequenceSDArray
@@ -159,7 +157,7 @@ class CDSBitSequenceSDArray
         CDSBitSequenceSDArray(CDSBitString& bitstring)
         {
             cdsbitsequencesdarray =
-                new cds_static::BitSequenceSDArray(bitstring.getBitString());
+                new cds_static::BitSequenceSDArray(*(bitstring.cdsbitstring));
         }
 
         CDSBitSequenceSDArray(ifstream& file)
@@ -216,7 +214,7 @@ class CDSBitSequenceRRR
         CDSBitSequenceRRR(CDSBitString& bitstring)
         {
             cdsbitsequencerrr =
-                new cds_static::BitSequenceRRR(bitstring.getBitString());
+                new cds_static::BitSequenceRRR(*(bitstring.cdsbitstring));
         }
 
         CDSBitSequenceRRR(ifstream& file)
