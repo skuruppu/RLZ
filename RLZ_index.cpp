@@ -28,12 +28,7 @@
 #include <sys/resource.h>
 #include <algorithm>
 #include <vector>
-#include <cmath>
 #include <cstring>
-
-#include <libcdsBasics.h>
-#include <cppUtils.h>
-#include <BitString.h>
 
 #include "RLZ_index.h"
 #include "Bits.h"
@@ -44,8 +39,6 @@
 #define BUFSIZE 1000
 
 using namespace std;
-using namespace cds_utils;
-using namespace cds_static;
 
 int main (int argc, char **argv)
 {
@@ -113,10 +106,10 @@ RLZ_index::RLZ_index(char *filename) :
     refseq = new Array(idxfile);
 
     // Read the factor start positions
-    facstarts = BitSequenceSDArray::load(idxfile);
+    facstarts = new BitSequenceSDArray(idxfile);
 
     // Read the isstart bit vectors
-    isstart = BitSequenceRRR::load(idxfile);
+    isstart = new BitSequenceRRR(idxfile);
 
     // Create a compact array to store the positions
     positions = new Array(idxfile);
@@ -152,10 +145,10 @@ RLZ_index::RLZ_index(char *filename) :
     numlevels = levelidx->getLength()-1;
 
     // Read the isend bit vectors
-    isend = BitSequenceRRR::load(idxfile);
+    isend = new BitSequenceRRR(idxfile);
 
     // Read the seqfacstart bit vector
-    seqfacstart = BitSequenceSDArray::load(idxfile);
+    seqfacstart = new BitSequenceSDArray(idxfile);
 
     idxfile.close();
 }

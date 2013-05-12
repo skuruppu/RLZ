@@ -24,14 +24,12 @@
 #include <stdio.h>
 #include <vector>
 
-#include <BitSequenceSDArray.h>
-#include <BitSequence.h>
-#include <TextIndex.h>
-
 #include "lib_wrapper/wrapper.h"
 
 #ifdef CDS
     #define Array lib_wrapper::CDSArray
+    #define BitSequenceSDArray lib_wrapper::CDSBitSequenceSDArray
+    #define BitSequenceRRR lib_wrapper::CDSBitSequenceRRR
 #endif
 
 typedef struct occurrence
@@ -94,7 +92,7 @@ class RLZ_index
         Array *positions;
 
         /* Factor facstarts in a rank-select data structure */
-        cds_static::BitSequenceSDArray *facstarts;
+        BitSequenceSDArray *facstarts;
 
         /* Sequence cumseqlens for numseqs sequences */
         Array *cumseqlens;
@@ -149,10 +147,10 @@ class RLZ_index
 
         // Compressed bit vectors to indicate at which positions in the
         // reference sequence factors start and end at
-        cds_static::BitSequenceRRR *isstart;
-        cds_static::BitSequenceRRR *isend;
+        BitSequenceRRR *isstart;
+        BitSequenceRRR *isend;
 
-        cds_static::BitSequenceSDArray *seqfacstart;
+        BitSequenceSDArray *seqfacstart;
 
         /** Implements the search functionality.
          * @param pattern Pattern to search for
