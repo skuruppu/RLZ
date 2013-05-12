@@ -23,14 +23,10 @@
  */
 
 #include <divsufsort64.h>
-#include <BitSequenceSDArray.h>
-#include <BitSequenceRRR.h>
 #include "RLZ.h"
 #include "alphabet.h"
 
 using namespace std;
-using namespace cds_utils;
-using namespace cds_static;
 
 RLZCompress::RLZCompress(char **filenames, uint64_t numfiles, 
                          char encoding, bool isshort, bool isliss)
@@ -1341,7 +1337,7 @@ void FactorWriterIndex::write_index()
     cout << "refseq: " << refseq->getSize() << endl;
 
     // Create the compressed bit vector and write it
-    cds_utils::BitString facstartsbitstr(facstarts.size());
+    BitString facstartsbitstr(facstarts.size());
     for (i=0; i<facstarts.size(); i++) {
         if (facstarts.at(i)) {
             facstartsbitstr.setBit(i);
@@ -1394,7 +1390,7 @@ void FactorWriterIndex::write_index()
         cout << "isend: " << compisend.getSize() << endl;
 
         // Create the compressed bit vector for factor start positions
-        cds_utils::BitString seqstartsbitstr(seqstarts.size());
+        BitString seqstartsbitstr(seqstarts.size());
         for (i=0; i<seqstarts.size(); i++) {
             if (seqstarts.at(i)) {
                 seqstartsbitstr.setBit(i);
@@ -1474,7 +1470,7 @@ void FactorWriterIndex::end_of_sequence()
 
 
 void FactorWriterIndex::construct_nested_level_list
-     (cds_static::BitSequenceSDArray& compfacstarts)
+     (BitSequenceSDArray& compfacstarts)
 {
     vector<uint32_t> *posindices = new vector<uint32_t>[refseqlen];
     vector< vector<uint32_t> > nestedlevels;

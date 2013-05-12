@@ -40,6 +40,9 @@
 
 #ifdef CDS
     #define Array lib_wrapper::CDSArray
+    #define BitString lib_wrapper::CDSBitString
+    #define BitSequenceSDArray lib_wrapper::CDSBitSequenceSDArray
+    #define BitSequenceRRR lib_wrapper::CDSBitSequenceRRR
 #endif
 
 class FactorWriter
@@ -283,11 +286,10 @@ class FactorWriterIndex : public FactorWriter
         uint32_t currseqfacnum;
 
         // Bit vectors to store which positions factors start and end at
-        cds_utils::BitString *isstart;
-        cds_utils::BitString *isend;
+        BitString *isstart;
+        BitString *isend;
 
-        void construct_nested_level_list(cds_static::BitSequenceSDArray&
-                                         facstartssdarray);
+        void construct_nested_level_list(BitSequenceSDArray& facstartssdarray);
 };
 
 class FactorReader
