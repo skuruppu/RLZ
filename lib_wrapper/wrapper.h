@@ -44,12 +44,12 @@ class CDSArrayReference
 
         operator uint64_t()
         {
-            return this->cdsarray->getField(this->idx);
+            return (*cdsarray)[idx];
         }
 
         CDSArrayReference& operator=(const uint64_t val)
         {
-            this->cdsarray->setField(this->idx, val);
+            cdsarray->setField(idx, val);
             return *this;
         }
 
@@ -68,47 +68,37 @@ class CDSArray
 
         CDSArray(const uint64_t size, const uint64_t maxval)
         {
-            this->cdsarray = new cds_utils::Array(size, maxval);
+            cdsarray = new cds_utils::Array(size, maxval);
         }
 
         CDSArray(ifstream& file)
         {
-            this->cdsarray = new cds_utils::Array(file);
+            cdsarray = new cds_utils::Array(file);
         }
 
         ~CDSArray()
         {
-            delete this->cdsarray;
-        }
-
-        uint64_t getField(const uint64_t idx)
-        {
-            return this->cdsarray->getField(idx);
-        }
-
-        uint64_t setField(const uint64_t idx, const uint64_t val)
-        {
-            return this->cdsarray->setField(idx, val);
+            delete cdsarray;
         }
 
         void save(ofstream& file)
         {
-            this->cdsarray->save(file);
+            cdsarray->save(file);
         }
 
         size_t getSize()
         {
-            return this->cdsarray->getSize();
+            return cdsarray->getSize();
         }
 
         uint64_t getLength()
         {
-            return this->cdsarray->getLength();
+            return cdsarray->getLength();
         }
 
         CDSArrayReference operator[](const uint64_t idx)
         {
-            return CDSArrayReference(this->cdsarray, idx);
+            return CDSArrayReference(cdsarray, idx);
         }
 
     private:
