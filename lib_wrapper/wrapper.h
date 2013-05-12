@@ -182,6 +182,11 @@ class CDSBitSequenceSDArray
             return cdsbitsequencesdarray->rank1(idx);
         }
 
+        bool access(const uint64_t idx)
+        {
+            return cdsbitsequencesdarray->access(idx);
+        }
+
         void save(ofstream& file)
         {
             cdsbitsequencesdarray->save(file);
@@ -232,6 +237,11 @@ class CDSBitSequenceRRR
         uint64_t rank1(const uint64_t idx)
         {
             return cdsbitsequencerrr->rank1(idx);
+        }
+
+        bool access(const uint64_t idx)
+        {
+            return cdsbitsequencerrr->access(idx);
         }
 
         void save(ofstream& file)
