@@ -21,10 +21,13 @@
  * Authors: Shanika Kuruppu
  */
 
+#include <cstring>
+
 #include "Array.h"
 #include "BitString.h"
 #include "BitSequenceSDArray.h"
 #include "BitSequenceRRR.h"
+#include "libcdsTrees.h"
 
 namespace lib_wrapper
 {
