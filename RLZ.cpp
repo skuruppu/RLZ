@@ -1313,8 +1313,7 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile, Array *refseq,
     cumseqlens.push_back(0);
     cumseqlens.push_back(0);
 
-    posarraylen = 1000;
-    positions = new unsigned int[posarraylen];
+    positions = new CDSIntVector(logrefseqlen);
     isstart = new BitString(refseqlen+1);
 
     if (!displayonly)
@@ -1360,7 +1359,7 @@ void FactorWriterIndex::write_index()
     Array posarray(numfacs, refseqlen);
     for (i=0; i<numfacs; i++)
     {
-        posarray[i] = get_field_64(positions, logrefseqlen, i);
+        posarray[i] = (*positions)[i];
     }
     posarray.save(outfile);
     cout << "positions: " << posarray.getSize() << endl;
@@ -1408,7 +1407,7 @@ void FactorWriterIndex::write_index()
 FactorWriterIndex::~FactorWriterIndex()
 {
     delete bwriter;
-    delete [] positions;
+    delete positions;
     delete isstart;
     if (!displayonly)
     {
@@ -1428,17 +1427,7 @@ void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
     for (i=1; i<len; i++)
         facstarts.push_back(false);
 
-    // Check if there's enough memory to store the position and if not
-    // allocate more memory
-    if (numfacs*logrefseqlen/(sizeof(unsigned int)*8)+1 >= posarraylen)
-    {
-        unsigned int *newarray = new unsigned int[posarraylen*2];
-        memcpy(newarray, positions, posarraylen*sizeof(unsigned int));
-        delete [] positions;
-        positions = newarray;
-        posarraylen *= 2;
-    }
-    set_field_64(positions, logrefseqlen, numfacs, pos);
+    positions->setField(numfacs, pos);
 
     isstart->setBit(pos);
 
@@ -1483,7 +1472,7 @@ void FactorWriterIndex::construct_nested_level_list
     // position 
     for (i=0; i<numfacs; i++)
     {
-        pos = get_field_64(positions, logrefseqlen, i); 
+        pos = (*positions)[i];
         // Only count positions that are not part of run length encoded
         // Ns 
         if (pos < refseqlen)
@@ -1516,7 +1505,7 @@ void FactorWriterIndex::construct_nested_level_list
     // Add the first factor onto the vector
     nestedlevels.back().push_back(sortedpositions.at(0));
     // Store the pos and len of the first factor
-    pos1 = get_field_64(positions, logrefseqlen, sortedpositions.at(0));
+    pos1 = (*positions)[sortedpositions.at(0)];
     if (sortedpositions.at(0)+1 == numfacs)
         len1 = cumseqlens.back() -
                compfacstarts.select1(sortedpositions.at(0)+1);
@@ -1528,7 +1517,7 @@ void FactorWriterIndex::construct_nested_level_list
     // depending on how they are ordered
     while (i < sortedpositions.size())
     {
-        pos2 = get_field_64(positions, logrefseqlen, sortedpositions.at(i));
+        pos2 = (*positions)[sortedpositions.at(i)];
         if (sortedpositions.at(i)+1 == numfacs)
             len2 = cumseqlens.back() - 
                    compfacstarts.select1(sortedpositions.at(i)+1);
@@ -1561,7 +1550,7 @@ void FactorWriterIndex::construct_nested_level_list
                 else
                 {
                     idx = nestedlevels.at(j).back();
-                    pos1 = get_field_64(positions, logrefseqlen, idx);
+                    pos1 = (*positions)[idx];
                     if (idx+1 == numfacs)
                         len1 = cumseqlens.back() -
                                compfacstarts.select1(idx+1);
@@ -1583,7 +1572,7 @@ void FactorWriterIndex::construct_nested_level_list
             // Make the previous factor be the last factor inserted into
             // level 0
             idx = nestedlevels.at(0).back();
-            pos1 = get_field_64(positions, logrefseqlen, idx);
+            pos1 = (*positions)[idx];
             if (idx+1 == numfacs)
                 len1 = cumseqlens.back() -
                        compfacstarts.select1(idx+1);

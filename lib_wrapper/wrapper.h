@@ -265,4 +265,56 @@ class CDSBitSequenceRRR
         CDSBitSequenceRRR& operator=(const CDSBitSequenceRRR& other);
 };
 
+class CDSIntVector
+{
+    public:
+
+        CDSIntVector() : array(NULL), width(0), length(1024) {}
+
+        CDSIntVector(uint64_t width)
+        {
+            this->width = width;
+            this->length = 10;
+            this->array = new unsigned int[length];
+        }
+
+        ~CDSIntVector()
+        {
+            delete [] array;
+        }
+
+        void setField(uint64_t idx, uint64_t val)
+        {
+            // Double memory if we run out of space
+            if (idx*width/(sizeof(unsigned int)*8)+1 >= length)
+            {
+                unsigned int *newarray = new unsigned int[length*2];
+                memcpy(newarray, array, length*sizeof(unsigned int));
+                delete [] array;
+                array = newarray;
+                length *= 2;
+            }
+
+            set_field_64(array, width, idx, val);
+        }
+
+        uint64_t operator[](const uint64_t idx)
+        {
+            return get_field_64(array, width, idx);
+        }
+
+    private:
+
+        unsigned int* array;
+
+        uint64_t width;
+
+        uint64_t length;
+
+        // Disable copy constructor and assignment operator
+        CDSIntVector(const CDSIntVector& other);
+
+        CDSIntVector& operator=(const CDSIntVector& other);
+};
+
 }
