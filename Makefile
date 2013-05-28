@@ -8,9 +8,9 @@ CFLAGS = -Wall -O9 -g -DCDS
 
 LIBS = -lcds -ldivsufsort64
 
-SRCS = RLZ.cpp Bits.cpp main.cpp RLZ_index.cpp
+SRCS = RLZ.cpp Bits.cpp main.cpp RLZ_index.cpp util.cpp
 
-OBJS = RLZ.o Bits.o main.o lib_wrapper/wrapper.o
+OBJS = RLZ.o Bits.o main.o lib_wrapper/wrapper.o util.o
 
 IDXOBJS = RLZ_index.o Bits.o lib_wrapper/wrapper.o
 

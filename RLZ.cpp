@@ -28,6 +28,7 @@
 #include <divsufsort64.h>
 #include "RLZ.h"
 #include "alphabet.h"
+#include "util.h"
 
 using namespace std;
 
@@ -68,15 +69,11 @@ void RLZCompress::read_refseq_and_construct_sa()
     // Read reference sequence into memory since its needed by
     // suffix arrey constructor
     char *sequence = NULL;
-    uint64_t seqlen;
-    if (loadText(filenames[0], &sequence, &seqlen))
+    if (!read_sequence(filenames[0], &sequence, &refseqlen))
     {
         cerr << "Couldn't read reference sequence.\n";
         exit(1);
     }
-
-    // loadText places an extra byte at the end
-    refseqlen = seqlen-1;
 
     // Read the reference sequence
     refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
@@ -121,13 +118,11 @@ void RLZCompress::read_refseq_and_sa()
         // Read reference sequence into memory since its needed by
         // suffix arrey constructor
         char *sequence = NULL;
-        if (loadText(filenames[0], &sequence, &refseqlen))
+        if (!read_sequence(filenames[0], &sequence, &refseqlen))
         {
             cerr << "Couldn't read reference sequence.\n";
             exit(1);
         }
-        // loadText places an extra byte at the end
-        refseqlen--;
 
         // Read the reference sequence
         refseq = new Array(refseqlen+1, ((unsigned)1<<BITSPERBASE)-1);
