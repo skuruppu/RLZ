@@ -40,7 +40,7 @@
     #define BitString lib_wrapper::CDSBitString
     #define BitSequenceSDArray lib_wrapper::CDSBitSequenceSDArray
     #define BitSequenceRRR lib_wrapper::CDSBitSequenceRRR
-    #define CDSIntVector lib_wrapper::CDSIntVector
+    #define IntVector lib_wrapper::CDSIntVector
 #endif
 
 class FactorWriter
@@ -258,7 +258,7 @@ class FactorWriterIndex : public FactorWriter
         std::vector<uint64_t> cumseqlens;
 
         // List of factor positions
-        CDSIntVector *positions;
+        IntVector *positions;
 
         // Total number of factors
         uint64_t numfacs;

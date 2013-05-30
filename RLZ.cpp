@@ -1308,7 +1308,7 @@ FactorWriterIndex::FactorWriterIndex(ofstream& outfile, Array *refseq,
     cumseqlens.push_back(0);
     cumseqlens.push_back(0);
 
-    positions = new CDSIntVector(logrefseqlen);
+    positions = new IntVector(logrefseqlen);
     isstart = new BitString(refseqlen+1);
 
     if (!displayonly)
