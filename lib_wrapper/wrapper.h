@@ -265,6 +265,28 @@ class CDSBitSequenceRRR
         CDSBitSequenceRRR& operator=(const CDSBitSequenceRRR& other);
 };
 
+class CDSIntVector;
+
+class CDSIntVectorReference
+{
+    public:
+
+        CDSIntVectorReference(CDSIntVector* vector, const uint64_t idx) :
+            vector(vector), idx(idx) {}
+
+        ~CDSIntVectorReference() {}
+
+        operator uint64_t();
+
+        CDSIntVectorReference& operator=(const uint64_t val);
+
+    private:
+
+        CDSIntVector* vector;
+
+        uint64_t idx;
+};
+
 class CDSIntVector
 {
     public:
@@ -283,6 +305,24 @@ class CDSIntVector
             delete [] array;
         }
 
+        CDSIntVectorReference operator[](const uint64_t idx)
+        {
+            return CDSIntVectorReference(this, idx);
+        }
+
+    private:
+
+        unsigned int* array;
+
+        uint64_t width;
+
+        uint64_t length;
+
+        uint64_t getField(uint64_t idx)
+        {
+            return get_field_64(array, width, idx);
+        }
+
         void setField(uint64_t idx, uint64_t val)
         {
             // Double memory if we run out of space
@@ -298,23 +338,12 @@ class CDSIntVector
             set_field_64(array, width, idx, val);
         }
 
-        uint64_t operator[](const uint64_t idx)
-        {
-            return get_field_64(array, width, idx);
-        }
-
-    private:
-
-        unsigned int* array;
-
-        uint64_t width;
-
-        uint64_t length;
-
         // Disable copy constructor and assignment operator
         CDSIntVector(const CDSIntVector& other);
 
         CDSIntVector& operator=(const CDSIntVector& other);
+
+        friend class CDSIntVectorReference;
 };
 
 }

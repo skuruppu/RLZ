@@ -1422,7 +1422,7 @@ void FactorWriterIndex::write_factor(uint64_t pos, uint64_t len)
     for (i=1; i<len; i++)
         facstarts.push_back(false);
 
-    positions->setField(numfacs, pos);
+    (*positions)[numfacs] = pos;
 
     isstart->setBit(pos);
 
