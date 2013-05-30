@@ -32,13 +32,6 @@
 namespace lib_wrapper
 {
 
-// Libraries supported by wrapper
-enum Library
-{
-    LIBCDS,
-    LIBSDSL
-};
-
 class CDSArrayReference
 {
     public:

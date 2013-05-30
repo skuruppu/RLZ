@@ -6,9 +6,9 @@ CC = g++
 
 CFLAGS = -Wall -O9 -g
 
-SRCS = wrapper.cpp
+SRCS = cds_wrapper.cpp
 
-OBJS = wrapper.o
+OBJS = wrapper.o cds_wrapper.o
 
 all: $(OBJS)
 

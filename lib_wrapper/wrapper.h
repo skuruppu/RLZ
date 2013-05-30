@@ -26,15 +26,11 @@
 namespace lib_wrapper
 {
 
-CDSIntVectorReference::operator uint64_t()
+// Libraries supported by wrapper
+enum Library
 {
-    return vector->getField(idx);
-}
-
-CDSIntVectorReference& CDSIntVectorReference::operator=(const uint64_t val)
-{
-    vector->setField(idx, val);
-    return *this;
-}
+    LIBCDS,
+    LIBSDSL
+};
 
 }
